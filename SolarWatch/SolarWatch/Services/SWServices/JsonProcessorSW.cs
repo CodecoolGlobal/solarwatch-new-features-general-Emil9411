@@ -8,10 +8,10 @@ public class JsonProcessorSW : IJsonProcessorSW
     private static readonly string[] InputFormats = { "h:mm:ss tt", "hh:mm:ss tt" };
     private const string OutputFormat = "HH:mm:ss";
 
-    public string[] SolarJsonProcessor(string data)
+    public TimeOnly[] SolarJsonProcessor(string data)
     {
-        var returnSunrise = "";
-        var returnSunset = "";
+        TimeOnly returnSunrise = new();
+        TimeOnly returnSunset = new();
 
         var json = JsonDocument.Parse(data);
 
@@ -23,16 +23,14 @@ public class JsonProcessorSW : IJsonProcessorSW
 
         foreach (var format in InputFormats)
         {
-            if (DateTime.TryParseExact(sunriseString, format, CultureInfo.InvariantCulture, DateTimeStyles.None,
-                    out var sunriseTime))
+            if (DateTime.TryParseExact(sunriseString, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime sunriseTime))
             {
-                returnSunrise = sunriseTime.ToString(OutputFormat);
+                returnSunrise = new TimeOnly(sunriseTime.Hour, sunriseTime.Minute, sunriseTime.Second);
             }
 
-            if (DateTime.TryParseExact(sunsetString, format, CultureInfo.InvariantCulture, DateTimeStyles.None,
-                    out var sunsetTime))
+            if (DateTime.TryParseExact(sunsetString, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime sunsetTime))
             {
-                returnSunset = sunsetTime.ToString(OutputFormat);
+                returnSunset = new TimeOnly(sunsetTime.Hour, sunsetTime.Minute, sunsetTime.Second);
             }
         }
 
