@@ -1,10 +1,12 @@
+using Microsoft.EntityFrameworkCore;
+using SolarWatch.Data;
 using SolarWatch.Services.GeoServices;
 using SolarWatch.Services.SWServices;
 var builder = WebApplication.CreateBuilder(args);
 
 AddServices();
 ConfigureSwagger();
-// AddDbContext();
+AddDbContext();
 // AddAuthentication();
 // AddIdentity();
 
@@ -41,4 +43,12 @@ void AddServices()
 void ConfigureSwagger()
 {
     builder.Services.AddSwaggerGen();
+}
+
+void AddDbContext()
+{
+    builder.Services.AddDbContext<DataContext>(options =>
+    {
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DatabaseConnection"));
+    });
 }
