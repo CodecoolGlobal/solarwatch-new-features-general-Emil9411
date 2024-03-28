@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using SolarWatch.Data;
+using SolarWatch.Model;
 using SolarWatch.Services.GeoServices;
 
 namespace SolarWatch.Controllers;
@@ -12,22 +14,34 @@ public class GeoController : ControllerBase
     private readonly ILogger<GeoController> _logger;
     private readonly IGeoApi _geoApi;
     private readonly IJsonProcessorGeo _jsonProcessorGeo;
+    private readonly DataContext _context;
     
-    public GeoController(ILogger<GeoController> logger, IGeoApi geoApi, IJsonProcessorGeo jsonProcessorGeo)
+    public GeoController(ILogger<GeoController> logger, IGeoApi geoApi, IJsonProcessorGeo jsonProcessorGeo, DataContext context)
     {
         _logger = logger;
         _geoApi = geoApi;
         _jsonProcessorGeo = jsonProcessorGeo;
+        _context = context;
     }
     
     [HttpGet("getlonglat")]
-    public async Task<ActionResult<double[]>> GetLongLat([Required] string city)
+    public async Task<ActionResult<CityData>> GetLongLat([Required] string city)
     {
         try
         {
-            var data = await _geoApi.GetLongLat(city);
-            var longLat = _jsonProcessorGeo.LongLatProcessor(data);
-            return Ok(longLat);
+            var dataFromDb = _context.CityDatas.FirstOrDefault(c => c.City == city);
+            if (dataFromDb != null)
+            {
+                return Ok(dataFromDb);
+            }
+            
+            var json = await _geoApi.GetLongLat(city);
+            var data = _jsonProcessorGeo.LongLatProcessor(json);
+            
+            _context.CityDatas.Add(data);
+            await _context.SaveChangesAsync();
+            
+            return Ok(data);
         }
         catch (HttpRequestException e)
         {
