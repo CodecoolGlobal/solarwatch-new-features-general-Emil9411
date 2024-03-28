@@ -1,6 +1,8 @@
+using SolarWatch.Model;
+
 namespace SolarWatch.Services.GeoServices;
 
 public interface IJsonProcessorGeo
 {
-    double[] LongLatProcessor(string data);
+    CityData LongLatProcessor(string data);
 }
