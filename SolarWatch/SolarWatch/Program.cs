@@ -37,6 +37,7 @@ void AddServices()
     builder.Services.AddControllers(
         options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
     builder.Services.AddScoped<IGeoRepository, GeoRepository>();
+    builder.Services.AddScoped<ISWRepository, SWRepository>();
     builder.Services.AddSingleton<INormalizeCityName, NormalizeCityName>();
     builder.Services.AddSingleton<SpecialCharReplacements>();
     builder.Services.AddSingleton<IGeoApi, GeoApi>();
