@@ -18,17 +18,19 @@ public class SWController : ControllerBase
     private readonly IJsonProcessorSW _jsonProcessorSW;
     private readonly IGeoApi _geoApi;
     private readonly IJsonProcessorGeo _jsonProcessorGeo;
-    private readonly DataContext _context;
+    private readonly ISWRepository _swRepository;
+    private readonly IGeoRepository _geoRepository;
 
     public SWController(ILogger<SWController> logger, ISWApi swApi, IJsonProcessorSW jsonProcessorSW, IGeoApi geoApi,
-        IJsonProcessorGeo jsonProcessorGeo, DataContext context)
+        IJsonProcessorGeo jsonProcessorGeo, ISWRepository swRepository, IGeoRepository geoRepository)
     {
         _logger = logger;
         _swApi = swApi;
         _jsonProcessorSW = jsonProcessorSW;
         _geoApi = geoApi;
         _jsonProcessorGeo = jsonProcessorGeo;
-        _context = context;
+        _swRepository = swRepository;
+        _geoRepository = geoRepository;
     }
 
     [HttpGet("getdata")]
@@ -36,13 +38,13 @@ public class SWController : ControllerBase
     {
         try
         {
-            var swDataFromDb = _context.SolarWatchDatas.FirstOrDefault(c => c.City == city && c.Date == date);
+            var swDataFromDb = _swRepository.GetSWData(city, date);
             if (swDataFromDb != null)
             {
                 return Ok(swDataFromDb);
             }
             
-            var geoDataFromDb = _context.CityDatas.FirstOrDefault(c => c.City == city);
+            var geoDataFromDb = _geoRepository.GetCity(city);
             if (geoDataFromDb != null)
             {
                 var solarJson = await _swApi.GetSolarData(date, geoDataFromDb.Latitude, geoDataFromDb.Longitude);
@@ -56,22 +58,21 @@ public class SWController : ControllerBase
                     Sunset = solarData[1]
                 };
                 
-                _context.SolarWatchDatas.Add(newCity);
-                await _context.SaveChangesAsync();
+                _swRepository.AddSWData(newCity);
                 
                 return Ok(newCity);
             }
             
             var geoData = await _geoApi.GetLongLat(city);
             var cityData = _jsonProcessorGeo.LongLatProcessor(geoData);
-            
-            _context.CityDatas.Add(new CityData
+            var newCityData = new CityData
             {
                 City = cityData.City,
                 Latitude = cityData.Latitude,
                 Longitude = cityData.Longitude
-            });
-            await _context.SaveChangesAsync();
+            };
+            
+            _geoRepository.AddCity(newCityData);
             
             var json = await _swApi.GetSolarData(date, cityData.Latitude, cityData.Longitude);
             var swData = _jsonProcessorSW.SolarJsonProcessor(json);
@@ -84,8 +85,7 @@ public class SWController : ControllerBase
                 Sunset = swData[1]
             };
             
-            _context.SolarWatchDatas.Add(newSolarWatchCity);
-            await _context.SaveChangesAsync();
+            _swRepository.AddSWData(newSolarWatchCity);
             
             return Ok(newSolarWatchCity);
         }
