@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using SolarWatch.Data;
+using SolarWatch.ErrorHandling;
 using SolarWatch.Model;
 using SolarWatch.Services.GeoServices;
 using SolarWatch.Services.SWServices;
@@ -20,9 +20,10 @@ public class SWController : ControllerBase
     private readonly IJsonProcessorGeo _jsonProcessorGeo;
     private readonly ISWRepository _swRepository;
     private readonly IGeoRepository _geoRepository;
+    private readonly IJsonErrorHandling _jsonErrorHandling;
 
     public SWController(ILogger<SWController> logger, ISWApi swApi, IJsonProcessorSW jsonProcessorSW, IGeoApi geoApi,
-        IJsonProcessorGeo jsonProcessorGeo, ISWRepository swRepository, IGeoRepository geoRepository)
+        IJsonProcessorGeo jsonProcessorGeo, ISWRepository swRepository, IGeoRepository geoRepository, IJsonErrorHandling jsonErrorHandling)
     {
         _logger = logger;
         _swApi = swApi;
@@ -31,11 +32,22 @@ public class SWController : ControllerBase
         _jsonProcessorGeo = jsonProcessorGeo;
         _swRepository = swRepository;
         _geoRepository = geoRepository;
+        _jsonErrorHandling = jsonErrorHandling;
     }
 
     [HttpGet("getdata")]
     public async Task<ActionResult<SWData>> GetData([Required] string city, [Required] DateOnly date)
     {
+        if (string.IsNullOrWhiteSpace(city))
+        {
+            return BadRequest("City is required");
+        }
+        
+        if (date == default)
+        {
+            return BadRequest("Date is required");
+        }
+        
         try
         {
             var swDataFromDb = _swRepository.GetSWData(city, date);
@@ -48,6 +60,13 @@ public class SWController : ControllerBase
             if (geoDataFromDb != null)
             {
                 var solarJson = await _swApi.GetSolarData(date, geoDataFromDb.Latitude, geoDataFromDb.Longitude);
+                
+                var solarJsonErrorHandlingIfCityInDb = _jsonErrorHandling.SolarJsonError(solarJson);
+                if (solarJsonErrorHandlingIfCityInDb is not OkResult)
+                {
+                    return solarJsonErrorHandlingIfCityInDb;
+                }
+                
                 var solarData = _jsonProcessorSW.SolarJsonProcessor(solarJson);
                 
                 var newCity = new SWData
@@ -75,6 +94,13 @@ public class SWController : ControllerBase
             _geoRepository.AddCity(newCityData);
             
             var json = await _swApi.GetSolarData(date, cityData.Latitude, cityData.Longitude);
+            
+            var solarJsonErrorHandlingIfCityNotInDb = _jsonErrorHandling.SolarJsonError(json);
+            if (solarJsonErrorHandlingIfCityNotInDb is not OkResult)
+            {
+                return solarJsonErrorHandlingIfCityNotInDb;
+            }
+            
             var swData = _jsonProcessorSW.SolarJsonProcessor(json);
             
             var newSolarWatchCity = new SWData
@@ -92,20 +118,22 @@ public class SWController : ControllerBase
         catch (HttpRequestException e)
         {
             _logger.LogError(e, "Error making API call for city: {city}", city);
+            return BadRequest(e.Message);
         }
         catch (JsonException e)
         {
             _logger.LogError(e, "Error processing API response for city: {city}", city);
+            return BadRequest(e.Message);
         }
         catch (DbUpdateException e)
         {
             _logger.LogError(e, "Error updating database for city: {city}", city);
+            return BadRequest(e.Message);
         }
         catch (Exception e)
         {
             _logger.LogError(e, "Error getting data for city: {city}", city);
+            return BadRequest(e.Message);
         }
-        
-        return NotFound("Error getting data for city: {city}");
     }
 }
