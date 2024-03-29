@@ -31,28 +31,16 @@ public class GeoRepository : IGeoRepository
         _context.CityDatas.Add(city);
         _context.SaveChanges();
     }
-
-    public string? GetLongitude(string city)
+    
+    public void UpdateCity(CityData city)
     {
-        city = _normalizeCityName.Normalize(city);
-        var cityData = GetCity(city);
-        if (cityData != null)
-        {
-            return cityData.Longitude.ToString();
-        }
-
-        return null;
+        _context.CityDatas.Update(city);
+        _context.SaveChanges();
     }
     
-    public string? GetLatitude(string city)
+    public void DeleteCity(CityData city)
     {
-        city = _normalizeCityName.Normalize(city);
-        var cityData = GetCity(city);
-        if (cityData != null)
-        {
-            return cityData.Latitude.ToString();
-        }
-
-        return null;
+        _context.CityDatas.Remove(city);
+        _context.SaveChanges();
     }
 }
