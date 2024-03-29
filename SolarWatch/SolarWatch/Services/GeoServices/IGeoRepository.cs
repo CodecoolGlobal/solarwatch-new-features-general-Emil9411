@@ -7,6 +7,6 @@ public interface IGeoRepository
     IEnumerable<CityData> GetAllCities();
     CityData GetCity(string city);
     void AddCity(CityData city);
-    string? GetLongitude(string city);
-    string? GetLatitude(string city);
+    void UpdateCity(CityData city);
+    void DeleteCity(CityData city);
 }
