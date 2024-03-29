@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SolarWatch.Data;
+using SolarWatch.ErrorHandling;
 using SolarWatch.Services.GeoServices;
 using SolarWatch.Services.SWServices;
 using SolarWatch.Utilities;
@@ -40,6 +41,7 @@ void AddServices()
     builder.Services.AddScoped<ISWRepository, SWRepository>();
     builder.Services.AddSingleton<INormalizeCityName, NormalizeCityName>();
     builder.Services.AddSingleton<SpecialCharReplacements>();
+    builder.Services.AddSingleton<IJsonErrorHandling, JsonErrorHandling>();
     builder.Services.AddSingleton<IGeoApi, GeoApi>();
     builder.Services.AddSingleton<IJsonProcessorGeo, JsonProcessorGeo>();
     builder.Services.AddSingleton<ISWApi, SWApi>();
