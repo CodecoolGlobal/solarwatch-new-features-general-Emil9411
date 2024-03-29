@@ -14,14 +14,14 @@ public class GeoController : ControllerBase
     private readonly ILogger<GeoController> _logger;
     private readonly IGeoApi _geoApi;
     private readonly IJsonProcessorGeo _jsonProcessorGeo;
-    private readonly DataContext _context;
+    private readonly IGeoRepository _geoRepository;
     
-    public GeoController(ILogger<GeoController> logger, IGeoApi geoApi, IJsonProcessorGeo jsonProcessorGeo, DataContext context)
+    public GeoController(ILogger<GeoController> logger, IGeoApi geoApi, IJsonProcessorGeo jsonProcessorGeo, IGeoRepository geoRepository)
     {
         _logger = logger;
         _geoApi = geoApi;
         _jsonProcessorGeo = jsonProcessorGeo;
-        _context = context;
+        _geoRepository = geoRepository;
     }
     
     [HttpGet("getlonglat")]
@@ -29,7 +29,7 @@ public class GeoController : ControllerBase
     {
         try
         {
-            var dataFromDb = _context.CityDatas.FirstOrDefault(c => c.City == city);
+            var dataFromDb = _geoRepository.GetCity(city);
             if (dataFromDb != null)
             {
                 return Ok(dataFromDb);
@@ -38,24 +38,24 @@ public class GeoController : ControllerBase
             var json = await _geoApi.GetLongLat(city);
             var data = _jsonProcessorGeo.LongLatProcessor(json);
             
-            _context.CityDatas.Add(data);
-            await _context.SaveChangesAsync();
+            _geoRepository.AddCity(data);
             
             return Ok(data);
         }
         catch (HttpRequestException e)
         {
             _logger.LogError(e, "Error making API call for city: {city}", city);
+            return BadRequest(e.Message);
         }
         catch (JsonException e)
         {
             _logger.LogError(e, "Error processing API response for city: {city}", city);
+            return BadRequest(e.Message);
         }
         catch (Exception e)
         {
             _logger.LogError(e, "Error getting long/lat for city: {city}", city);
+            return BadRequest(e.Message);
         }
-        
-        return BadRequest();
     }
 }
