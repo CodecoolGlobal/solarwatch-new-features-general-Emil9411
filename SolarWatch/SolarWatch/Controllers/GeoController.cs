@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
-using SolarWatch.Data;
 using SolarWatch.Model;
 using SolarWatch.Services.GeoServices;
 
@@ -27,6 +26,11 @@ public class GeoController : ControllerBase
     [HttpGet("getlonglat")]
     public async Task<ActionResult<CityData>> GetLongLat([Required] string city)
     {
+        if (string.IsNullOrWhiteSpace(city))
+        {
+            return BadRequest("City cannot be empty");
+        }
+        
         try
         {
             var dataFromDb = _geoRepository.GetCity(city);
@@ -36,6 +40,12 @@ public class GeoController : ControllerBase
             }
             
             var json = await _geoApi.GetLongLat(city);
+
+            if (string.IsNullOrWhiteSpace(json) || json == "[]")
+            {
+                return NotFound($"City {city} not found");
+            }
+
             var data = _jsonProcessorGeo.LongLatProcessor(json);
             
             _geoRepository.AddCity(data);
