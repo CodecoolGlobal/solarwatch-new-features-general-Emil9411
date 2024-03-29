@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
 using SolarWatch.Controllers;
+using SolarWatch.ErrorHandling;
 using SolarWatch.Model;
 using SolarWatch.Services.GeoServices;
 
@@ -15,71 +16,77 @@ public class GeoControllerTest
     private readonly Mock<IGeoApi> _geoApiMock = new();
     private readonly Mock<IJsonProcessorGeo> _jsonProcessorGeoMock = new();
     private readonly Mock<IGeoRepository> _geoRepositoryMock = new();
+    private readonly Mock<IJsonErrorHandling> _jsonErrorHandlingMock = new();
     
     private readonly GeoController _geoController;
     
     public GeoControllerTest()
     {
-        _geoController = new GeoController(_loggerMock.Object, _geoApiMock.Object, _jsonProcessorGeoMock.Object, _geoRepositoryMock.Object);
+        _geoController = new GeoController(_loggerMock.Object, _geoApiMock.Object, _jsonProcessorGeoMock.Object, _geoRepositoryMock.Object, _jsonErrorHandlingMock.Object);
     }
+
+    private const string City = "London";
     
     [Test]
     public async Task GetLongLat_WhenCityExistsInDb_ReturnsOk()
     {
         // Arrange
-        var city = "London";
         var cityData = new CityData
         {
-            City = city,
+            City = City,
             Latitude = 51.5074,
             Longitude = 0.1278
         };
         
-        _geoRepositoryMock.Setup(x => x.GetCity(city)).Returns(cityData);
+        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns(cityData);
         
         // Act
-        var result = await _geoController.GetLongLat(city);
+        var result = await _geoController.GetLongLat(City); 
         
         // Assert
-        Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
-        Assert.That((result.Result as OkObjectResult)?.Value, Is.EqualTo(cityData));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
+            Assert.That((result.Result as OkObjectResult)?.Value, Is.EqualTo(cityData));
+        });
     }
-    
+
     [Test]
     public async Task GetLongLat_WhenCityDoesNotExistInDb_ReturnsOk()
     {
         // Arrange
-        var city = "London";
         var cityData = new CityData
         {
-            City = city,
+            City = City,
             Latitude = 51.5074,
             Longitude = 0.1278
         };
         
-        _geoRepositoryMock.Setup(x => x.GetCity(city)).Returns((CityData)null);
-        _geoApiMock.Setup(x => x.GetLongLat(city)).ReturnsAsync("json");
+        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns((CityData)null);
+        _geoApiMock.Setup(x => x.GetLongLat(City)).ReturnsAsync("json");
+        _jsonErrorHandlingMock.Setup(x => x.GeoJsonError("json")).Returns(new OkResult());
         _jsonProcessorGeoMock.Setup(x => x.LongLatProcessor("json")).Returns(cityData);
         
         // Act
-        var result = await _geoController.GetLongLat(city);
+        var result = await _geoController.GetLongLat(City);
         
         // Assert
-        Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
-        Assert.That((result.Result as OkObjectResult)?.Value, Is.EqualTo(cityData));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
+            Assert.That((result.Result as OkObjectResult)?.Value, Is.EqualTo(cityData));
+        });
     }
-    
+
     [Test]
     public async Task GetLongLat_WhenApiCallFails_ReturnsBadRequest()
     {
         // Arrange
-        var city = "London";
-        
-        _geoRepositoryMock.Setup(x => x.GetCity(city)).Returns((CityData)null);
-        _geoApiMock.Setup(x => x.GetLongLat(city)).ThrowsAsync(new HttpRequestException());
+        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns((CityData)null);
+        _geoApiMock.Setup(x => x.GetLongLat(City)).ThrowsAsync(new HttpRequestException());
         
         // Act
-        var result = await _geoController.GetLongLat(city);
+        var result = await _geoController.GetLongLat(City);
         
         // Assert
         Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
@@ -89,14 +96,12 @@ public class GeoControllerTest
     public async Task GetLongLat_WhenJsonProcessingFails_ReturnsBadRequest()
     {
         // Arrange
-        var city = "London";
-        
-        _geoRepositoryMock.Setup(x => x.GetCity(city)).Returns((CityData)null);
-        _geoApiMock.Setup(x => x.GetLongLat(city)).ReturnsAsync("json");
+        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns((CityData)null);
+        _geoApiMock.Setup(x => x.GetLongLat(City)).ReturnsAsync("json");
         _jsonProcessorGeoMock.Setup(x => x.LongLatProcessor("json")).Throws(new JsonException());
         
         // Act
-        var result = await _geoController.GetLongLat(city);
+        var result = await _geoController.GetLongLat(City);
         
         // Assert
         Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
@@ -106,14 +111,12 @@ public class GeoControllerTest
     public async Task GetLongLat_WhenUnknownErrorOccurs_ReturnsBadRequest()
     {
         // Arrange
-        var city = "London";
-        
-        _geoRepositoryMock.Setup(x => x.GetCity(city)).Returns((CityData)null);
-        _geoApiMock.Setup(x => x.GetLongLat(city)).ReturnsAsync("json");
+        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns((CityData)null);
+        _geoApiMock.Setup(x => x.GetLongLat(City)).ReturnsAsync("json");
         _jsonProcessorGeoMock.Setup(x => x.LongLatProcessor("json")).Throws(new Exception());
         
         // Act
-        var result = await _geoController.GetLongLat(city);
+        var result = await _geoController.GetLongLat(City);
         
         // Assert
         Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
@@ -162,13 +165,12 @@ public class GeoControllerTest
     public async Task GetLongLat_WhenCityNotFound_ReturnsNotFound()
     {
         // Arrange
-        var city = "London";
-        
-        _geoRepositoryMock.Setup(x => x.GetCity(city)).Returns((CityData)null);
-        _geoApiMock.Setup(x => x.GetLongLat(city)).ReturnsAsync("[]");
+        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns((CityData)null);
+        _geoApiMock.Setup(x => x.GetLongLat(City)).ReturnsAsync("[]");
+        _jsonErrorHandlingMock.Setup(x => x.GeoJsonError("[]")).Returns(new NotFoundObjectResult("Data not found"));
         
         // Act
-        var result = await _geoController.GetLongLat(city);
+        var result = await _geoController.GetLongLat(City);
         
         // Assert
         Assert.That(result.Result, Is.InstanceOf<NotFoundObjectResult>());
@@ -178,38 +180,39 @@ public class GeoControllerTest
     public async Task GetLongLat_WhenCityNotFoundInDb_ReturnsOk()
     {
         // Arrange
-        var city = "London";
         var cityData = new CityData
         {
-            City = city,
+            City = City,
             Latitude = 51.5074,
             Longitude = 0.1278
         };
         
-        _geoRepositoryMock.Setup(x => x.GetCity(city)).Returns((CityData)null);
-        _geoApiMock.Setup(x => x.GetLongLat(city)).ReturnsAsync("json");
+        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns((CityData)null);
+        _geoApiMock.Setup(x => x.GetLongLat(City)).ReturnsAsync("json");
+        _jsonErrorHandlingMock.Setup(x => x.GeoJsonError("json")).Returns(new OkResult());
         _jsonProcessorGeoMock.Setup(x => x.LongLatProcessor("json")).Returns(cityData);
         
         // Act
-        var result = await _geoController.GetLongLat(city);
-        
-        // Assert
-        Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
-        Assert.That((result.Result as OkObjectResult)?.Value, Is.EqualTo(cityData));
+        var result = await _geoController.GetLongLat(City);
+        Assert.Multiple(() =>
+        {
+
+            // Assert
+            Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
+            Assert.That((result.Result as OkObjectResult)?.Value, Is.EqualTo(cityData));
+        });
     }
-    
+
     [Test]
     public async Task GetLongLat_WhenJsonExceptionOccurs_ReturnsBadRequest()
     {
         // Arrange
-        var city = "London";
-        
-        _geoRepositoryMock.Setup(x => x.GetCity(city)).Returns((CityData)null);
-        _geoApiMock.Setup(x => x.GetLongLat(city)).ReturnsAsync("json");
+        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns((CityData)null);
+        _geoApiMock.Setup(x => x.GetLongLat(City)).ReturnsAsync("json");
         _jsonProcessorGeoMock.Setup(x => x.LongLatProcessor("json")).Throws(new JsonException());
         
         // Act
-        var result = await _geoController.GetLongLat(city);
+        var result = await _geoController.GetLongLat(City);
         
         // Assert
         Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
