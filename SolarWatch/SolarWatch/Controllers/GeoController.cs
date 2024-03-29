@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using SolarWatch.ErrorHandling;
 using SolarWatch.Model;
 using SolarWatch.Services.GeoServices;
 
@@ -14,13 +15,15 @@ public class GeoController : ControllerBase
     private readonly IGeoApi _geoApi;
     private readonly IJsonProcessorGeo _jsonProcessorGeo;
     private readonly IGeoRepository _geoRepository;
+    private readonly IJsonErrorHandling _jsonErrorHandling;
     
-    public GeoController(ILogger<GeoController> logger, IGeoApi geoApi, IJsonProcessorGeo jsonProcessorGeo, IGeoRepository geoRepository)
+    public GeoController(ILogger<GeoController> logger, IGeoApi geoApi, IJsonProcessorGeo jsonProcessorGeo, IGeoRepository geoRepository, IJsonErrorHandling jsonErrorHandling)
     {
         _logger = logger;
         _geoApi = geoApi;
         _jsonProcessorGeo = jsonProcessorGeo;
         _geoRepository = geoRepository;
+        _jsonErrorHandling = jsonErrorHandling;
     }
     
     [HttpGet("getlonglat")]
@@ -41,9 +44,10 @@ public class GeoController : ControllerBase
             
             var json = await _geoApi.GetLongLat(city);
 
-            if (string.IsNullOrWhiteSpace(json) || json == "[]")
+            var errorResult = _jsonErrorHandling.GeoJsonError(json);
+            if (errorResult is not OkResult)
             {
-                return NotFound($"City {city} not found");
+                return errorResult;
             }
 
             var data = _jsonProcessorGeo.LongLatProcessor(json);
