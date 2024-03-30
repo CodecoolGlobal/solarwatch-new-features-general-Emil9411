@@ -1,27 +1,29 @@
-import { useState } from 'react'
-import './App.css'
+import React from "react";
+import { Outlet, Link, useLocation } from "react-router-dom";
+
+import "./App.css";
+import Logo from "./img/sun.png";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className="App">
+      <div className="container">
+        <Link to="/">
+          <img className="logo" src={Logo} alt="SolarWatch" />
+        </Link>
+        <Link to="/login">
+          <button>Login</button>
+        </Link>
+        <Link to="/register">
+          <button>Register</button>
+        </Link>
+        <Link to="/solarwatch">
+          <button>SolarWatch</button>
+        </Link>
+        </div>
+      <Outlet />
+    </div>
+  );
 }
 
-export default App
+export default App;
