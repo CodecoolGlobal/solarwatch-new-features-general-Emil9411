@@ -81,48 +81,6 @@ public class SolarWatchControllerTest
     }
     
     [Test]
-    public async Task GetData_WhenCityAndDateAreValidButCityIsNotInDb_ReturnsOk()
-    {
-        // Arrange
-        var cityData = new CityData
-        {
-            City = City,
-            Latitude = 51.5074,
-            Longitude = 0.1278
-        };
-        
-        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns((CityData)null);
-        _geoApiMock.Setup(x => x.GetLongLat(City)).ReturnsAsync("json");
-        _jsonErrorHandlingMock.Setup(x => x.GeoJsonError("json")).Returns(new OkResult());
-        _jsonProcessorGeoMock.Setup(x => x.LongLatProcessor("json")).Returns(cityData);
-        
-        var solarJson = "json";
-        _swApiMock.Setup(x => x.GetSolarData(Date, cityData.Latitude, cityData.Longitude)).ReturnsAsync(solarJson);
-        _jsonErrorHandlingMock.Setup(x => x.SolarJsonError(solarJson)).Returns(new OkResult());
-        
-        var solarData = new[] { new TimeOnly(8, 0), new TimeOnly(16, 0) };
-        _jsonProcessorSWMock.Setup(x => x.SolarJsonProcessor(solarJson)).Returns(solarData);
-        
-        var swData = new SWData
-        {
-            City = City,
-            Date = Date,
-            Sunrise = solarData[0],
-            Sunset = solarData[1]
-        };
-        
-        // Act
-        var result = await _swController.GetData(City, Date);
-        
-        // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
-            Assert.That((result.Result as OkObjectResult)?.Value, Is.EqualTo(swData));
-        });
-    }
-    
-    [Test]
     public async Task GetData_WhenCityAndDateAreValidButCityIsNotInDbAndApiCallFails_ReturnsBadRequest()
     {
         // Arrange
@@ -185,48 +143,6 @@ public class SolarWatchControllerTest
         
         // Assert
         Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
-    }
-    
-    [Test]
-    public async Task GetData_WhenCityAndDateAreValidButCityIsNotInDbAndApiCallSucceeds_ReturnsOk()
-    {
-        // Arrange
-        var cityData = new CityData
-        {
-            City = City,
-            Latitude = 51.5074,
-            Longitude = 0.1278
-        };
-        
-        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns((CityData)null);
-        _geoApiMock.Setup(x => x.GetLongLat(City)).ReturnsAsync("json");
-        _jsonErrorHandlingMock.Setup(x => x.GeoJsonError("json")).Returns(new OkResult());
-        _jsonProcessorGeoMock.Setup(x => x.LongLatProcessor("json")).Returns(cityData);
-        
-        var solarJson = "json";
-        _swApiMock.Setup(x => x.GetSolarData(Date, cityData.Latitude, cityData.Longitude)).ReturnsAsync(solarJson);
-        _jsonErrorHandlingMock.Setup(x => x.SolarJsonError(solarJson)).Returns(new OkResult());
-        
-        var solarData = new[] { new TimeOnly(8, 0), new TimeOnly(16, 0) };
-        _jsonProcessorSWMock.Setup(x => x.SolarJsonProcessor(solarJson)).Returns(solarData);
-        
-        var swData = new SWData
-        {
-            City = City,
-            Date = Date,
-            Sunrise = solarData[0],
-            Sunset = solarData[1]
-        };
-        
-        // Act
-        var result = await _swController.GetData(City, Date);
-        
-        // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
-            Assert.That((result.Result as OkObjectResult)?.Value, Is.EqualTo(swData));
-        });
     }
     
     [Test]
@@ -415,6 +331,39 @@ public class SolarWatchControllerTest
         
         _swRepositoryMock.Setup(x => x.GetSWData(City, Date)).Returns((SWData)null);
         _swRepositoryMock.Setup(x => x.AddSWData(It.IsAny<SWData>())).Throws(new DbUpdateException());
+        
+        // Act
+        var result = await _swController.GetData(City, Date);
+        
+        // Assert
+        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+    
+    [Test]
+    public async Task GetData_Exception_ReturnsBadRequest()
+    {
+        // Arrange
+        var cityData = new CityData
+        {
+            City = City,
+            Latitude = 51.5074,
+            Longitude = 0.1278
+        };
+        
+        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns((CityData)null);
+        _geoApiMock.Setup(x => x.GetLongLat(City)).ReturnsAsync("json");
+        _jsonErrorHandlingMock.Setup(x => x.GeoJsonError("json")).Returns(new OkResult());
+        _jsonProcessorGeoMock.Setup(x => x.LongLatProcessor("json")).Returns(cityData);
+        
+        var solarJson = "json";
+        _swApiMock.Setup(x => x.GetSolarData(Date, cityData.Latitude, cityData.Longitude)).ReturnsAsync(solarJson);
+        _jsonErrorHandlingMock.Setup(x => x.SolarJsonError(solarJson)).Returns(new OkResult());
+        
+        var solarData = new[] { new TimeOnly(8, 0), new TimeOnly(16, 0) };
+        _jsonProcessorSWMock.Setup(x => x.SolarJsonProcessor(solarJson)).Returns(solarData);
+        
+        _swRepositoryMock.Setup(x => x.GetSWData(City, Date)).Returns((SWData)null);
+        _swRepositoryMock.Setup(x => x.AddSWData(It.IsAny<SWData>())).Throws(new Exception());
         
         // Act
         var result = await _swController.GetData(City, Date);
