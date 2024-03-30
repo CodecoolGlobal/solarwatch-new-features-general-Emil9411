@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SolarWatch.Data;
 using SolarWatch.ErrorHandling;
+using SolarWatch.Services.Auth;
 using SolarWatch.Services.GeoServices;
 using SolarWatch.Services.SWServices;
 using SolarWatch.Utilities;
@@ -11,7 +13,7 @@ AddServices();
 ConfigureSwagger();
 AddDbContext();
 // AddAuthentication();
-// AddIdentity();
+AddIdentity();
 
 var app = builder.Build();
 
@@ -39,6 +41,7 @@ void AddServices()
         options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
     builder.Services.AddScoped<IGeoRepository, GeoRepository>();
     builder.Services.AddScoped<ISWRepository, SWRepository>();
+    builder.Services.AddScoped<IAuthService, AuthService>();
     builder.Services.AddSingleton<INormalizeCityName, NormalizeCityName>();
     builder.Services.AddSingleton<SpecialCharReplacements>();
     builder.Services.AddSingleton<IJsonErrorHandling, JsonErrorHandling>();
@@ -60,4 +63,24 @@ void AddDbContext()
     {
         options.UseSqlServer(builder.Configuration.GetConnectionString("DatabaseConnection"));
     });
+    builder.Services.AddDbContext<UsersContext>(options =>
+    {
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DatabaseConnection"));
+    });
+}
+
+void AddIdentity()
+{
+    builder.Services
+        .AddIdentityCore<IdentityUser>(options =>
+        {
+            options.SignIn.RequireConfirmedAccount = false;
+            options.User.RequireUniqueEmail = true;
+            options.Password.RequireDigit = false;
+            options.Password.RequiredLength = 6;
+            options.Password.RequireNonAlphanumeric = false;
+            options.Password.RequireUppercase = false;
+            options.Password.RequireLowercase = false;
+        })
+        .AddEntityFrameworkStores<UsersContext>();
 }
