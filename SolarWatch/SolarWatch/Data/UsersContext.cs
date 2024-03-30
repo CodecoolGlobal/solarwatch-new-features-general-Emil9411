@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using SolarWatch.Model;
 
 namespace SolarWatch.Data;
 
-public class UsersContext : IdentityUserContext<IdentityUser>
+public class UsersContext : IdentityDbContext<ApplicationUser, IdentityRole, string>
 {
     public UsersContext(DbContextOptions<UsersContext> options) : base(options)
     {
