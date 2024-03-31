@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SolarWatch.ErrorHandling;
 using SolarWatch.Model;
@@ -26,7 +27,7 @@ public class GeoController : ControllerBase
         _jsonErrorHandling = jsonErrorHandling;
     }
     
-    [HttpGet("getlonglat")]
+    [HttpGet("getlonglat"), Authorize(Roles = "Admin")]
     public async Task<ActionResult<CityData>> GetLongLat([Required] string city)
     {
         if (string.IsNullOrWhiteSpace(city))
