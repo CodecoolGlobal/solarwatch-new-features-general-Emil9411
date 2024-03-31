@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import LogoutButton from "./components/LogoutButton";
 
-import "./index.css";
+import "./design/index.css";
 import Logo from "./img/sun.png";
 
 function App() {
