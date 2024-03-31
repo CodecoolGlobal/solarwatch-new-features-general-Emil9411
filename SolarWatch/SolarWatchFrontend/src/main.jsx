@@ -5,7 +5,9 @@ import App from './App.jsx'
 import Login from './pages/Login.jsx'
 import Registration from './pages/Registration.jsx'
 import SolarWatch from './pages/SolarWatch.jsx'
-import './index.css'
+import Profile from './pages/Profile.jsx';
+import Admin from './pages/Admin.jsx';
+import './design/index.css'
 
 const router = createBrowserRouter([
   {
@@ -15,6 +17,8 @@ const router = createBrowserRouter([
       { path: '/login', element: <Login /> },
       { path: '/register', element: <Registration /> },
       { path: '/solarwatch', element: <SolarWatch /> },
+      { path: '/profile', element: <Profile /> },
+      { path: '/admin', element: <Admin /> },
     ],
   },
 ]);
