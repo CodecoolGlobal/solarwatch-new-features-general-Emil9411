@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SolarWatch.ErrorHandling;
@@ -35,7 +36,7 @@ public class SWController : ControllerBase
         _jsonErrorHandling = jsonErrorHandling;
     }
 
-    [HttpGet("getdata")]
+    [HttpGet("getdata/{city}/{date}"), Authorize(Roles = "User,Admin")]
     public async Task<ActionResult<SWData>> GetData([Required] string city, [Required] DateOnly date)
     {
         if (string.IsNullOrWhiteSpace(city))
@@ -133,6 +134,26 @@ public class SWController : ControllerBase
         catch (Exception e)
         {
             _logger.LogError(e, "Error getting data for city: {city}", city);
+            return BadRequest(e.Message);
+        }
+    }
+
+    [HttpGet("getall"), Authorize(Roles = "Admin")]
+    public ActionResult<IEnumerable<SWData>> GetAll()
+    {
+        try
+        {
+            var allData = _swRepository.GetAllSWDatas();
+            return Ok(allData);
+        }
+        catch (DbUpdateException e)
+        {
+            _logger.LogError(e, "Error updating database");
+            return BadRequest(e.Message);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error getting all data");
             return BadRequest(e.Message);
         }
     }
