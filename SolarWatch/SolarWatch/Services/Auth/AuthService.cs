@@ -3,6 +3,8 @@ using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using SolarWatch.Model;
+using System.Text.RegularExpressions;
+
 
 namespace SolarWatch.Services.Auth;
 
@@ -98,18 +100,18 @@ public class AuthService : IAuthService
         return authResult;
     }
     
-    private bool IsValidEmail(string email)
-    {
-        try
-        {
-            var addr = new System.Net.Mail.MailAddress(email);
-            return addr.Address == email;
-        }
-        catch
-        {
-            return false;
-        }
-    }
+
+private static bool IsValidEmail(string email)
+{
+    // Regular expression for basic email validation
+    string emailRegex = @"^(?!\.)(""([^""\r\\]|\\[""\r\\])*""|"
+                       + @"([-a-z0-9!#$%&'*+/=?^_`{|}~]|(?<!\.)\.)*)(?<!\.)"
+                       + @"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?<!\.)\."
+                       + @"([a-z0-9!#$%&'*+/=?^_`{|}~-]|(?<!\.)\.)*[a-z0-9!#$%&'*+/=?^_`{|}~]"
+                       + @"$";
+    return Regex.IsMatch(email, emailRegex, RegexOptions.IgnoreCase);
+}
+
     
     private static AuthResult InvalidUsername(string username)
     {
