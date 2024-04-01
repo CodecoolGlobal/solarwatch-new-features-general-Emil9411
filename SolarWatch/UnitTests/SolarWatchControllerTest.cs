@@ -33,6 +33,7 @@ public class SolarWatchControllerTest
     private const string City = "London";
     private static readonly DateOnly Date = new(2022, 1, 1);
 
+    // get data endpoint tests
     [Test]
     public async Task GetData_WhenCityAndDateAreValid_ReturnsOk()
     {
@@ -372,8 +373,273 @@ public class SolarWatchControllerTest
         Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
     }
     
+    // get all endpoint tests
+    [Test]
+    public void GetAll_ReturnsOk()
+    {
+        // Arrange
+        var swData = new List<SWData>
+        {
+            new SWData
+            {
+                City = City,
+                Date = Date,
+                Sunrise = new TimeOnly(8, 0),
+                Sunset = new TimeOnly(16, 0)
+            }
+        };
+        
+        _swRepositoryMock.Setup(x => x.GetAllSWDatas()).Returns(swData);
+        
+        // Act
+        var result = _swController.GetAll();
+        
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
+            Assert.That((result.Result as OkObjectResult)?.Value, Is.EqualTo(swData));
+        });
+    }
     
+    [Test]
+    public void GetAll_DbException_ReturnsBadRequest()
+    {
+        // Arrange
+        _swRepositoryMock.Setup(x => x.GetAllSWDatas()).Throws(new DbUpdateException());
+        
+        // Act
+        var result = _swController.GetAll();
+        
+        // Assert
+        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+    }
     
+    [Test]
+    public void GetAll_Exception_ReturnsBadRequest()
+    {
+        // Arrange
+        _swRepositoryMock.Setup(x => x.GetAllSWDatas()).Throws(new Exception());
+        
+        // Act
+        var result = _swController.GetAll();
+        
+        // Assert
+        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+    }
     
-
+    // update endpoint tests
+    [Test]
+    public async Task Update_WhenIdIsValid_ReturnsOk()
+    {
+        // Arrange
+        var id = 1;
+        var swData = new SWData
+        {
+            Id = id,
+            City = City,
+            Date = Date,
+            Sunrise = new TimeOnly(8, 0),
+            Sunset = new TimeOnly(16, 0)
+        };
+        
+        _swRepositoryMock.Setup(x => x.GetSWDataById(id)).ReturnsAsync(swData);
+        
+        var newSwData = new SWData
+        {
+            Id = id,
+            City = City,
+            Date = Date,
+            Sunrise = new TimeOnly(9, 0),
+            Sunset = new TimeOnly(17, 0)
+        };
+        
+        // Act
+        var result = await _swController.Update(id, newSwData);
+        
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
+        });
+    }
+    
+    [Test]
+    public async Task Update_WhenSwDataIsNull_ReturnsNotFound()
+    {
+        // Arrange
+        var id = 1;
+        
+        _swRepositoryMock.Setup(x => x.GetSWDataById(id)).ReturnsAsync((SWData)null);
+        
+        var newSwData = new SWData
+        {
+            Id = id,
+            City = City,
+            Date = Date,
+            Sunrise = new TimeOnly(9, 0),
+            Sunset = new TimeOnly(17, 0)
+        };
+        
+        // Act
+        var result = await _swController.Update(id, newSwData);
+        
+        // Assert
+        Assert.That(result.Result, Is.InstanceOf<NotFoundResult>());
+    }
+    
+    [Test]
+    public async Task Update_DbUpdateException_ReturnsBadRequest()
+    {
+        // Arrange
+        var id = 1;
+        var swData = new SWData
+        {
+            Id = id,
+            City = City,
+            Date = Date,
+            Sunrise = new TimeOnly(8, 0),
+            Sunset = new TimeOnly(16, 0)
+        };
+        
+        _swRepositoryMock.Setup(x => x.GetSWDataById(id)).ReturnsAsync(swData);
+        
+        var newSwData = new SWData
+        {
+            Id = id,
+            City = City,
+            Date = Date,
+            Sunrise = new TimeOnly(9, 0),
+            Sunset = new TimeOnly(17, 0)
+        };
+        
+        _swRepositoryMock.Setup(x => x.UpdateSWData(newSwData)).Throws(new DbUpdateException());
+        
+        // Act
+        var result = await _swController.Update(id, newSwData);
+        
+        // Assert
+        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+    
+    [Test]
+    public async Task Update_Exception_ReturnsBadRequest()
+    {
+        // Arrange
+        var id = 1;
+        var swData = new SWData
+        {
+            Id = id,
+            City = City,
+            Date = Date,
+            Sunrise = new TimeOnly(8, 0),
+            Sunset = new TimeOnly(16, 0)
+        };
+        
+        _swRepositoryMock.Setup(x => x.GetSWDataById(id)).ReturnsAsync(swData);
+        
+        var newSwData = new SWData
+        {
+            Id = id,
+            City = City,
+            Date = Date,
+            Sunrise = new TimeOnly(9, 0),
+            Sunset = new TimeOnly(17, 0)
+        };
+        
+        _swRepositoryMock.Setup(x => x.UpdateSWData(newSwData)).Throws(new Exception());
+        
+        // Act
+        var result = await _swController.Update(id, newSwData);
+        
+        // Assert
+        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+    
+    // delete endpoint tests
+    [Test]
+    public async Task Delete_WhenIdIsValid_ReturnsOk()
+    {
+        // Arrange
+        var id = 1;
+        var swData = new SWData
+        {
+            Id = id,
+            City = City,
+            Date = Date,
+            Sunrise = new TimeOnly(8, 0),
+            Sunset = new TimeOnly(16, 0)
+        };
+        
+        _swRepositoryMock.Setup(x => x.GetSWDataById(id)).ReturnsAsync(swData);
+        
+        // Act
+        var result = await _swController.Delete(id);
+        
+        // Assert
+        Assert.That(result, Is.InstanceOf<OkResult>());
+    }
+    
+    [Test]
+    public async Task Delete_WhenSwDataIsNull_ReturnsNotFound()
+    {
+        // Arrange
+        var id = 1;
+        
+        _swRepositoryMock.Setup(x => x.GetSWDataById(id)).ReturnsAsync((SWData)null);
+        
+        // Act
+        var result = await _swController.Delete(id);
+        
+        // Assert
+        Assert.That(result, Is.InstanceOf<NotFoundResult>());
+    }
+    
+    [Test]
+    public async Task Delete_DbUpdateException_ReturnsBadRequest()
+    {
+        // Arrange
+        var id = 1;
+        var swData = new SWData
+        {
+            Id = id,
+            City = City,
+            Date = Date,
+            Sunrise = new TimeOnly(8, 0),
+            Sunset = new TimeOnly(16, 0)
+        };
+        
+        _swRepositoryMock.Setup(x => x.GetSWDataById(id)).ReturnsAsync(swData);
+        _swRepositoryMock.Setup(x => x.DeleteSWData(id)).Throws(new DbUpdateException());
+        
+        // Act
+        var result = await _swController.Delete(id);
+        
+        // Assert
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+    
+    [Test]
+    public async Task Delete_Exception_ReturnsBadRequest()
+    {
+        // Arrange
+        var id = 1;
+        var swData = new SWData
+        {
+            Id = id,
+            City = City,
+            Date = Date,
+            Sunrise = new TimeOnly(8, 0),
+            Sunset = new TimeOnly(16, 0)
+        };
+        
+        _swRepositoryMock.Setup(x => x.GetSWDataById(id)).ReturnsAsync(swData);
+        _swRepositoryMock.Setup(x => x.DeleteSWData(id)).Throws(new Exception());
+        
+        // Act
+        var result = await _swController.Delete(id);
+        
+        // Assert
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+    }
 }
