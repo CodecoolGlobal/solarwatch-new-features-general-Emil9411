@@ -1,5 +1,5 @@
 import React from "react";
-import "../design/oneRowTable.css";
+import "../design/table.css";
 import { capitalizeWords } from "../utilities/utils";
 
 function OneRowTable({ dataObject }) {
