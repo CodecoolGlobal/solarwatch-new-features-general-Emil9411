@@ -43,12 +43,12 @@ public class SWController : ControllerBase
         {
             return BadRequest("City is required");
         }
-        
+
         if (date == default)
         {
             return BadRequest("Date is required");
         }
-        
+
         try
         {
             var swDataFromDb = _swRepository.GetSWData(city, date);
@@ -56,20 +56,20 @@ public class SWController : ControllerBase
             {
                 return Ok(swDataFromDb);
             }
-            
+
             var geoDataFromDb = _geoRepository.GetCity(city);
             if (geoDataFromDb != null)
             {
                 var solarJson = await _swApi.GetSolarData(date, geoDataFromDb.Latitude, geoDataFromDb.Longitude);
-                
+
                 var solarJsonErrorHandlingIfCityInDb = _jsonErrorHandling.SolarJsonError(solarJson);
                 if (solarJsonErrorHandlingIfCityInDb is not OkResult)
                 {
                     return solarJsonErrorHandlingIfCityInDb;
                 }
-                
+
                 var solarData = _jsonProcessorSW.SolarJsonProcessor(solarJson);
-                
+
                 var newCity = new SWData
                 {
                     City = geoDataFromDb.City,
@@ -77,12 +77,12 @@ public class SWController : ControllerBase
                     Sunrise = solarData[0],
                     Sunset = solarData[1]
                 };
-                
+
                 _swRepository.AddSWData(newCity);
-                
+
                 return Ok(newCity);
             }
-            
+
             var geoData = await _geoApi.GetLongLat(city);
             var cityData = _jsonProcessorGeo.LongLatProcessor(geoData);
             var newCityData = new CityData
@@ -91,19 +91,19 @@ public class SWController : ControllerBase
                 Latitude = cityData.Latitude,
                 Longitude = cityData.Longitude
             };
-            
+
             _geoRepository.AddCity(newCityData);
-            
+
             var json = await _swApi.GetSolarData(date, cityData.Latitude, cityData.Longitude);
-            
+
             var solarJsonErrorHandlingIfCityNotInDb = _jsonErrorHandling.SolarJsonError(json);
             if (solarJsonErrorHandlingIfCityNotInDb is not OkResult)
             {
                 return solarJsonErrorHandlingIfCityNotInDb;
             }
-            
+
             var swData = _jsonProcessorSW.SolarJsonProcessor(json);
-            
+
             var newSolarWatchCity = new SWData
             {
                 City = cityData.City,
@@ -111,9 +111,9 @@ public class SWController : ControllerBase
                 Sunrise = swData[0],
                 Sunset = swData[1]
             };
-            
+
             _swRepository.AddSWData(newSolarWatchCity);
-            
+
             return Ok(newSolarWatchCity);
         }
         catch (HttpRequestException e)
@@ -154,6 +154,70 @@ public class SWController : ControllerBase
         catch (Exception e)
         {
             _logger.LogError(e, "Error getting all data");
+            return BadRequest(e.Message);
+        }
+    }
+
+    [HttpPatch("update/{id}"), Authorize(Roles = "Admin")]
+    public async Task<ActionResult<SWData>> Update([Required] int id, [FromBody] SWData updatedData)
+    {
+        try
+        {
+            _logger.LogInformation("Updating data for id: {id}", id);
+            _logger.LogInformation("Updated data:  {updatedData.City}", updatedData.City);
+            var swData = await _swRepository.GetSWDataById(id);
+            if (swData == null)
+            {
+                return NotFound();
+            }
+
+            // Update the fields of swData with the values from updatedData
+            swData.City = updatedData.City;
+            swData.Date = updatedData.Date;
+            swData.Sunrise = updatedData.Sunrise;
+            swData.Sunset = updatedData.Sunset;
+            // Add any other fields that you want to update
+
+            await _swRepository.UpdateSWData(swData);
+
+            return Ok(swData);
+        }
+        catch (DbUpdateException e)
+        {
+            _logger.LogError(e, "Error updating database for id: {id}", id);
+            return BadRequest(e.Message);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error updating data for id: {id}", id);
+            return BadRequest(e.Message);
+        }
+    }
+
+    [HttpDelete("delete/{id}"), Authorize(Roles = "Admin")]
+    public async Task<ActionResult> Delete([Required] int id)
+    {
+        try
+        {
+            _logger.LogInformation("Deleting data for id: {id}", id);
+            var swData = await _swRepository.GetSWDataById(id);
+            if (swData == null)
+            {
+                return NotFound();
+            }
+
+            _swRepository.DeleteSWData(id);
+
+            return Ok();
+        }
+        catch (DbUpdateException e)
+        {
+            _logger.LogError(e, "Error updating database for id: {id}", id);
+            return BadRequest(e.Message);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error deleting data for id: {id}", id);
             return BadRequest(e.Message);
         }
     }
