@@ -1,8 +1,8 @@
 import React from "react";
-import "../design/oneRowTable.css";
+import "../design/table.css";
 import { capitalizeWords } from "../utilities/utils";
 
-const AdminTable = ({ data }) => {
+const AdminTable = ({ data, onDelete, onUpdate }) => {
   // Extract the keys from the first row of data
   const keys = Object.keys(data[0]);
 
@@ -24,10 +24,10 @@ const AdminTable = ({ data }) => {
               <td key={key}>{row[key]}</td>
             ))}
             <td>
-              <button>Edit</button>
+              <button onClick={() => onUpdate(row)}>Update</button>
             </td>
             <td>
-              <button>Delete</button>
+              <button onClick={() => onDelete(row.id)}>Delete</button>
             </td>
           </tr>
         ))}
