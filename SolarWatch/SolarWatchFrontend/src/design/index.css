@@ -83,11 +83,10 @@ button:focus-visible {
   display: flex;
   justify-content: center;
   align-items: center;
-  position: fixed; /* or absolute, depending on your layout requirements */
-  top: 0; /* adjust as needed */
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%; /* or specify a fixed width if needed */
+  position: sticky;
+  top: 0;
+  width: 80vw;
+  background-color: #242424;
 }
 
 
