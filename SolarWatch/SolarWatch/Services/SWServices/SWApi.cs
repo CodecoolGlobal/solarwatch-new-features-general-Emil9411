@@ -1,17 +1,17 @@
 namespace SolarWatch.Services.SWServices;
 
-public class SWApi : ISWApi
+public class SwApi : ISwApi
 {
-    private readonly ILogger<SWApi> _logger;
+    private readonly ILogger<SwApi> _logger;
     
-    public SWApi(ILogger<SWApi> logger)
+    public SwApi(ILogger<SwApi> logger)
     {
         _logger = logger;
     }
     
-    public async Task<string> GetSolarData(DateOnly date, double latitude, double longitude)
+    public async Task<string> GetSolarData(DateOnly date, double latitude, double longitude, string timeZone)
     {
-        var url = $"https://api.sunrise-sunset.org/json?lat={latitude}&lng={longitude}&date={date:yyyy-MM-dd}";
+        var url = $"https://api.sunrise-sunset.org/json?lat={latitude}&lng={longitude}&date={date:yyyy-MM-dd}&tzid={timeZone}";
         
         using var client = new HttpClient();
         _logger.LogInformation("Calling SW API with url: {url}", url);
