@@ -7,11 +7,11 @@ using Xunit.Abstractions;
 
 namespace IntegrationTests;
 
-public class SWControllerIntegrationTest
+public class SwControllerIntegrationTest
 {
     private readonly ITestOutputHelper _testOutputHelper;
     
-    public SWControllerIntegrationTest(ITestOutputHelper testOutputHelper)
+    public SwControllerIntegrationTest(ITestOutputHelper testOutputHelper)
     {
         _testOutputHelper = testOutputHelper;
     }
@@ -27,7 +27,7 @@ public class SWControllerIntegrationTest
         var response = await client.GetAsync($"/api/SW/getdata/Stockholm/2022-01-01");
         
         response.EnsureSuccessStatusCode();
-        var data = await response.Content.ReadFromJsonAsync<SWData>();
+        var data = await response.Content.ReadFromJsonAsync<SwData>();
         
         Assert.NotNull(data);
         Assert.Equal("Stockholm", data.City);
@@ -45,7 +45,7 @@ public class SWControllerIntegrationTest
         var response = await client.GetAsync($"/api/SW/getdata/Stockholm/2022-01-01");
         
         response.EnsureSuccessStatusCode();
-        var data = await response.Content.ReadFromJsonAsync<SWData>();
+        var data = await response.Content.ReadFromJsonAsync<SwData>();
         
         Assert.NotNull(data);
         Assert.Equal("Stockholm", data.City);
@@ -63,7 +63,7 @@ public class SWControllerIntegrationTest
         var response = await client.GetAsync($"/api/SW/getAll");
         
         response.EnsureSuccessStatusCode();
-        var allData = await response.Content.ReadFromJsonAsync<List<SWData>>();
+        var allData = await response.Content.ReadFromJsonAsync<List<SwData>>();
         
         Assert.NotNull(allData);
         Assert.Empty(allData);
