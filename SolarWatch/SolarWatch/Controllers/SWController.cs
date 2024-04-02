@@ -1,43 +1,55 @@
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SolarWatch.ErrorHandling;
 using SolarWatch.Model;
-using SolarWatch.Services.GeoServices;
+using SolarWatch.Services.LocationServices;
 using SolarWatch.Services.SWServices;
+using SolarWatch.Utilities;
 
 namespace SolarWatch.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class SWController : ControllerBase
+public class SwController : ControllerBase
 {
-    private readonly ILogger<SWController> _logger;
-    private readonly ISWApi _swApi;
-    private readonly IJsonProcessorSW _jsonProcessorSW;
+    private readonly ILogger<SwController> _logger;
+    private readonly ISwApi _swApi;
+    private readonly IJsonProcessorSw _jsonProcessorSw;
     private readonly IGeoApi _geoApi;
     private readonly IJsonProcessorGeo _jsonProcessorGeo;
-    private readonly ISWRepository _swRepository;
+    private readonly ISwRepository _swRepository;
     private readonly IGeoRepository _geoRepository;
+    private readonly ITimeZoneApi _timeZoneApi;
+    private readonly IJsonProcessorTz _jsonProcessorTz;
     private readonly IJsonErrorHandling _jsonErrorHandling;
+    private readonly ICityDataCombiner _cityDataCombiner;
+    private readonly INormalizeCityName _normalizeCityName;
 
-    public SWController(ILogger<SWController> logger, ISWApi swApi, IJsonProcessorSW jsonProcessorSW, IGeoApi geoApi,
-        IJsonProcessorGeo jsonProcessorGeo, ISWRepository swRepository, IGeoRepository geoRepository, IJsonErrorHandling jsonErrorHandling)
+    public SwController(ILogger<SwController> logger, ISwApi swApi, IJsonProcessorSw jsonProcessorSw, IGeoApi geoApi,
+        IJsonProcessorGeo jsonProcessorGeo, ISwRepository swRepository, IGeoRepository geoRepository,
+        IJsonErrorHandling jsonErrorHandling, ITimeZoneApi timeZoneApi, IJsonProcessorTz jsonProcessorTz,
+        ICityDataCombiner cityDataCombiner, INormalizeCityName normalizeCityName)
     {
         _logger = logger;
         _swApi = swApi;
-        _jsonProcessorSW = jsonProcessorSW;
+        _jsonProcessorSw = jsonProcessorSw;
         _geoApi = geoApi;
         _jsonProcessorGeo = jsonProcessorGeo;
         _swRepository = swRepository;
         _geoRepository = geoRepository;
         _jsonErrorHandling = jsonErrorHandling;
+        _timeZoneApi = timeZoneApi;
+        _jsonProcessorTz = jsonProcessorTz;
+        _cityDataCombiner = cityDataCombiner;
+        _normalizeCityName = normalizeCityName;
     }
 
-    [HttpGet("getdata/{city}/{date}"), Authorize(Roles = "User,Admin")]
-    public async Task<ActionResult<SWData>> GetData([Required] string city, [Required] DateOnly date)
+    [HttpGet("getdata/{city}/{date}"), Authorize(Roles = "User, Admin")]
+    public async Task<ActionResult<SwData>> GetData([Required] string city, [Required] DateOnly date)
     {
         if (string.IsNullOrWhiteSpace(city))
         {
@@ -51,7 +63,7 @@ public class SWController : ControllerBase
 
         try
         {
-            var swDataFromDb = _swRepository.GetSWData(city, date);
+            var swDataFromDb = _swRepository.GetSwData(city, date);
             if (swDataFromDb != null)
             {
                 return Ok(swDataFromDb);
@@ -60,7 +72,7 @@ public class SWController : ControllerBase
             var geoDataFromDb = _geoRepository.GetCity(city);
             if (geoDataFromDb != null)
             {
-                var solarJson = await _swApi.GetSolarData(date, geoDataFromDb.Latitude, geoDataFromDb.Longitude);
+                var solarJson = await _swApi.GetSolarData(date, geoDataFromDb.Latitude, geoDataFromDb.Longitude, geoDataFromDb.TimeZone);
 
                 var solarJsonErrorHandlingIfCityInDb = _jsonErrorHandling.SolarJsonError(solarJson);
                 if (solarJsonErrorHandlingIfCityInDb is not OkResult)
@@ -68,53 +80,88 @@ public class SWController : ControllerBase
                     return solarJsonErrorHandlingIfCityInDb;
                 }
 
-                var solarData = _jsonProcessorSW.SolarJsonProcessor(solarJson);
+                var solarData = _jsonProcessorSw.SolarJsonProcessor(solarJson);
 
-                var newCity = new SWData
+                var newCity = new SwData
                 {
                     City = geoDataFromDb.City,
                     Date = date,
                     Sunrise = solarData[0],
-                    Sunset = solarData[1]
+                    Sunset = solarData[1],
+                    Country = geoDataFromDb.Country,
+                    TimeZone = geoDataFromDb.TimeZone
                 };
 
-                _swRepository.AddSWData(newCity);
+                _swRepository.AddSwData(newCity);
 
                 return Ok(newCity);
             }
 
             var geoData = await _geoApi.GetLongLat(city);
+
+            var geoJsonErrorHandling = _jsonErrorHandling.GeoJsonError(geoData);
+            if (geoJsonErrorHandling is not OkResult)
+            {
+                return geoJsonErrorHandling;
+            }
+
             var cityData = _jsonProcessorGeo.LongLatProcessor(geoData);
-            var newCityData = new CityData
+            var newCityDataFromGeoApi = new CityData
             {
                 City = cityData.City,
                 Latitude = cityData.Latitude,
                 Longitude = cityData.Longitude
             };
 
-            _geoRepository.AddCity(newCityData);
+            var latString = cityData.Latitude.ToString(CultureInfo.InvariantCulture);
+            var lonString = cityData.Longitude.ToString(CultureInfo.InvariantCulture);
 
-            var json = await _swApi.GetSolarData(date, cityData.Latitude, cityData.Longitude);
+            var timeZoneJson = await _timeZoneApi.GetTimeZone(latString, lonString);
 
-            var solarJsonErrorHandlingIfCityNotInDb = _jsonErrorHandling.SolarJsonError(json);
-            if (solarJsonErrorHandlingIfCityNotInDb is not OkResult)
+            var timeZoneJsonErrorHandling = _jsonErrorHandling.TimeZoneJsonError(timeZoneJson);
+            if (timeZoneJsonErrorHandling is not OkResult)
             {
-                return solarJsonErrorHandlingIfCityNotInDb;
+                return timeZoneJsonErrorHandling;
             }
 
-            var swData = _jsonProcessorSW.SolarJsonProcessor(json);
-
-            var newSolarWatchCity = new SWData
+            var timeZoneData = _jsonProcessorTz.TimeZoneProcessor(timeZoneJson);
+            var newCityDataFromTimeZoneApi = new CityData
             {
-                City = cityData.City,
-                Date = date,
-                Sunrise = swData[0],
-                Sunset = swData[1]
+                TimeZone = timeZoneData.TimeZone,
+                Country = timeZoneData.Country
             };
 
-            _swRepository.AddSWData(newSolarWatchCity);
-
-            return Ok(newSolarWatchCity);
+            var combinedData = _cityDataCombiner.CombineCityData(newCityDataFromGeoApi, newCityDataFromTimeZoneApi);
+            
+            if (combinedData.City != _normalizeCityName.Normalize(city))
+            {
+                combinedData.City = _normalizeCityName.Normalize(city);
+            }
+            
+            _geoRepository.AddCity(combinedData);
+            
+            var solarJsonFromApi = await _swApi.GetSolarData(date, combinedData.Latitude, combinedData.Longitude, combinedData.TimeZone);
+            
+            var solarJsonErrorHandling = _jsonErrorHandling.SolarJsonError(solarJsonFromApi);
+            if (solarJsonErrorHandling is not OkResult)
+            {
+                return solarJsonErrorHandling;
+            }
+            
+            var solarDataFromApi = _jsonProcessorSw.SolarJsonProcessor(solarJsonFromApi);
+            var newCityData = new SwData
+            {
+                City = combinedData.City,
+                Date = date,
+                Sunrise = solarDataFromApi[0],
+                Sunset = solarDataFromApi[1],
+                Country = combinedData.Country,
+                TimeZone = combinedData.TimeZone
+            };
+            
+            _swRepository.AddSwData(newCityData);
+            
+            return Ok(newCityData);
         }
         catch (HttpRequestException e)
         {
@@ -139,11 +186,11 @@ public class SWController : ControllerBase
     }
 
     [HttpGet("getall"), Authorize(Roles = "Admin")]
-    public ActionResult<IEnumerable<SWData>> GetAll()
+    public ActionResult<IEnumerable<SwData>> GetAll()
     {
         try
         {
-            var allData = _swRepository.GetAllSWDatas();
+            var allData = _swRepository.GetAllSwDatas();
             return Ok(allData);
         }
         catch (DbUpdateException e)
@@ -159,13 +206,13 @@ public class SWController : ControllerBase
     }
 
     [HttpPatch("update/{id}"), Authorize(Roles = "Admin")]
-    public async Task<ActionResult<SWData>> Update([Required] int id, [FromBody] SWData updatedData)
+    public async Task<ActionResult<SwData>> Update([Required] int id, [FromBody] SwData updatedData)
     {
         try
         {
             _logger.LogInformation("Updating data for id: {id}", id);
             _logger.LogInformation("Updated data:  {updatedData.City}", updatedData.City);
-            var swData = await _swRepository.GetSWDataById(id);
+            var swData = await _swRepository.GetSwDataById(id);
             if (swData == null)
             {
                 return NotFound();
@@ -178,7 +225,7 @@ public class SWController : ControllerBase
             swData.Sunset = updatedData.Sunset;
             // Add any other fields that you want to update
 
-            await _swRepository.UpdateSWData(swData);
+            await _swRepository.UpdateSwData(swData);
 
             return Ok(swData);
         }
@@ -200,13 +247,13 @@ public class SWController : ControllerBase
         try
         {
             _logger.LogInformation("Deleting data for id: {id}", id);
-            var swData = await _swRepository.GetSWDataById(id);
+            var swData = await _swRepository.GetSwDataById(id);
             if (swData == null)
             {
                 return NotFound();
             }
 
-            _swRepository.DeleteSWData(id);
+            _swRepository.DeleteSwData(id);
 
             return Ok();
         }
