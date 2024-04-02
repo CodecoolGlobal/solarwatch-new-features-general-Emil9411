@@ -5,7 +5,7 @@
 namespace SolarWatch.Migrations.Users
 {
     /// <inheritdoc />
-    public partial class newUserModel : Migration
+    public partial class NewUserModel : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

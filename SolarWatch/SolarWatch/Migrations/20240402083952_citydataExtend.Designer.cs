@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SolarWatch.Data;
 
@@ -11,9 +12,11 @@ using SolarWatch.Data;
 namespace SolarWatch.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20240402083952_citydataExtend")]
+    partial class citydataExtend
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -47,7 +50,7 @@ namespace SolarWatch.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("CityDataTable");
+                    b.ToTable("CityDatas");
                 });
 
             modelBuilder.Entity("SolarWatch.Model.SWData", b =>
@@ -61,9 +64,6 @@ namespace SolarWatch.Migrations
                     b.Property<string>("City")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Country")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
 
@@ -73,12 +73,9 @@ namespace SolarWatch.Migrations
                     b.Property<TimeSpan>("Sunset")
                         .HasColumnType("time");
 
-                    b.Property<string>("TimeZone")
-                        .HasColumnType("nvarchar(max)");
-
                     b.HasKey("Id");
 
-                    b.ToTable("SolarWatchDataTable");
+                    b.ToTable("SolarWatchDatas");
                 });
 #pragma warning restore 612, 618
         }

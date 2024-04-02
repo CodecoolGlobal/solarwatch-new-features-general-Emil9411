@@ -13,7 +13,7 @@ namespace SolarWatch.Migrations.Users
 {
     [DbContext(typeof(UsersContext))]
     [Migration("20240330001238_userMigration")]
-    partial class userMigration
+    partial class UserMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

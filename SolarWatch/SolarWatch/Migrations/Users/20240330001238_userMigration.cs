@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SolarWatch.Migrations.Users
 {
     /// <inheritdoc />
-    public partial class userMigration : Migration
+    public partial class UserMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
