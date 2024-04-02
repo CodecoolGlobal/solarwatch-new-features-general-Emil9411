@@ -52,11 +52,11 @@ public class AuthService : IAuthService
             var result = await _userManager.CheckPasswordAsync(user, password);
             if (!result)
             {
-                return InvalidPassword(emailOrUserName, user.UserName);
+                return InvalidPassword(emailOrUserName, user?.UserName ?? ""); // Added null check and default value for userName
             }
             var roles = await _userManager.GetRolesAsync(user);
             var accessToken = _tokenService.CreateToken(user, roles[0]);
-            return new AuthResult(true, emailOrUserName, user.UserName, accessToken);
+            return new AuthResult(true, emailOrUserName, user?.UserName ?? "", accessToken); // Added null check and default value for userName
         }
         else
         {
@@ -68,23 +68,28 @@ public class AuthService : IAuthService
             var result = await _userManager.CheckPasswordAsync(user, password);
             if (!result)
             {
-                return InvalidPassword(user.Email, emailOrUserName);
+                return InvalidPassword(user?.Email ?? "", emailOrUserName); // Added null check and default value for email
             }
             var roles = await _userManager.GetRolesAsync(user);
             var accessToken = _tokenService.CreateToken(user, roles[0]);
-            return new AuthResult(true, user.Email, emailOrUserName, accessToken);
+            return new AuthResult(true, user?.Email ?? "", emailOrUserName, accessToken); // Added null check and default value for email
         }
     }
     
-    public JwtSecurityToken Verify(string token){
+    public JwtSecurityToken Verify(string token)
+    {
         var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.UTF8.GetBytes(_configuration.GetSection("IssuerSigningKey").Value);
-        tokenHandler.ValidateToken(token, new TokenValidationParameters{
+        var issuerSigningKey = _configuration.GetSection("IssuerSigningKey").Value;
+        var key = !string.IsNullOrEmpty(issuerSigningKey) ? Encoding.UTF8.GetBytes(issuerSigningKey) : throw new ArgumentNullException("IssuerSigningKey is null or empty.");
+        
+        tokenHandler.ValidateToken(token, new TokenValidationParameters
+        {
             IssuerSigningKey = new SymmetricSecurityKey(key),
             ValidateIssuerSigningKey = true,
             ValidateIssuer = false,
             ValidateAudience = false,
         }, out SecurityToken validatedToken);
+        
         return (JwtSecurityToken)validatedToken;
     }
 
