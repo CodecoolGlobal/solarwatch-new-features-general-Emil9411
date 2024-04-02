@@ -1,8 +1,9 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 
 namespace SolarWatch.Model;
 
 public class ApplicationUser : IdentityUser
 {
-    public string City { get; set; }
+    [Required]public string? City { get; set; }
 }
