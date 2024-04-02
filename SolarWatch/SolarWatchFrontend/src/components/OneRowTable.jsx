@@ -13,10 +13,6 @@ function OneRowTable({ dataObject }) {
                 <td>{dataObject[key]}</td>
             </tr>
             ))}
-            <tr>
-                <td><button>Save City</button></td>
-                <td><button>Save City & Date</button></td>
-            </tr>
         </tbody>
         </table>
     );
