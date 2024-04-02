@@ -7,7 +7,7 @@ function SolarWatch() {
   const [data, setData] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const [city, setCity] = useState("");
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().substr(0, 10));
 
   async function fetchData() {
     try {
