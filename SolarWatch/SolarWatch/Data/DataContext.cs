@@ -6,27 +6,30 @@ namespace SolarWatch.Data;
 
 public class DataContext : DbContext
 {
-    public DataContext(DbContextOptions<DataContext> options) : base(options)
+    private readonly IConfiguration _config;
+    public DataContext(DbContextOptions<DataContext> options, IConfiguration config) : base(options)
     {
+        _config = config;
     }
 
-    public DbSet<SWData>? SolarWatchDatas { get; set; }
-    public DbSet<CityData>? CityDatas { get; set; }
+    public DbSet<SwData>? SolarWatchDataTable { get; set; }
+    public DbSet<CityData>? CityDataTable { get; set; }
     
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseSqlServer("Integrated Security=SSPI;Persist Security Info=False;Initial Catalog=SolarWatch;Data Source=EMIL\\SQLEXPRESS;TrustServerCertificate=true;");
+        var connectionString = _config.GetConnectionString("DatabaseConnection");
+        optionsBuilder.UseSqlServer(connectionString);
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<SWData>()
+        modelBuilder.Entity<SwData>()
             .Property(e => e.Date)
             .HasConversion(new DateOnlyConverter());
-        modelBuilder.Entity<SWData>()
+        modelBuilder.Entity<SwData>()
             .Property(e => e.Sunrise)
             .HasConversion(new TimeOnlyConverter());
-        modelBuilder.Entity<SWData>()
+        modelBuilder.Entity<SwData>()
             .Property(e => e.Sunset)
             .HasConversion(new TimeOnlyConverter());
     }
