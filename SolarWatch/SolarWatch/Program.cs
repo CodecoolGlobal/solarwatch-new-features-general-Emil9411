@@ -8,7 +8,7 @@ using SolarWatch.Data;
 using SolarWatch.ErrorHandling;
 using SolarWatch.Model;
 using SolarWatch.Services.Auth;
-using SolarWatch.Services.GeoServices;
+using SolarWatch.Services.LocationServices;
 using SolarWatch.Services.SWServices;
 using SolarWatch.Utilities;
 
@@ -51,7 +51,8 @@ void AddServices()
     builder.Services.AddControllers(
         options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
     builder.Services.AddScoped<IGeoRepository, GeoRepository>();
-    builder.Services.AddScoped<ISWRepository, SWRepository>();
+    builder.Services.AddScoped<ISwRepository, SwRepository>();
+    builder.Services.AddScoped<ICityDataCombiner, CityDataCombiner>();
     builder.Services.AddScoped<IAuthService, AuthService>();
     builder.Services.AddScoped<ITokenService, TokenService>();
     builder.Services.AddScoped<AuthSeeder>();
@@ -60,8 +61,10 @@ void AddServices()
     builder.Services.AddSingleton<IJsonErrorHandling, JsonErrorHandling>();
     builder.Services.AddSingleton<IGeoApi, GeoApi>();
     builder.Services.AddSingleton<IJsonProcessorGeo, JsonProcessorGeo>();
-    builder.Services.AddSingleton<ISWApi, SWApi>();
-    builder.Services.AddSingleton<IJsonProcessorSW, JsonProcessorSW>();
+    builder.Services.AddSingleton<ISwApi, SwApi>();
+    builder.Services.AddSingleton<IJsonProcessorSw, JsonProcessorSw>();
+    builder.Services.AddSingleton<ITimeZoneApi, TimeZoneApi>();
+    builder.Services.AddSingleton<IJsonProcessorTz, JsonProcessorTz>();
     
 }
 
