@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -37,6 +38,23 @@ public class JsonErrorHandling : IJsonErrorHandling
             return new NotFoundObjectResult("Data not found");
         }
 
+        return new OkResult();
+    }
+
+    public ActionResult TimeZoneJsonError(string timeZoneJson)
+    {
+        if (string.IsNullOrWhiteSpace(timeZoneJson))
+        {
+            return new NotFoundObjectResult("Data not found");
+        }
+        
+        var jsonDoc = JsonDocument.Parse(timeZoneJson);
+        var status = jsonDoc.RootElement.GetProperty("status").GetString();
+        if (status == "FAILED")
+        {
+            return new BadRequestObjectResult("Request failed");
+        }
+        
         return new OkResult();
     }
 }
