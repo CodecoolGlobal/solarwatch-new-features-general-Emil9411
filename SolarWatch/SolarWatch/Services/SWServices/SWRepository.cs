@@ -5,42 +5,42 @@ using SolarWatch.Utilities;
 
 namespace SolarWatch.Services.SWServices;
 
-public class SWRepository : ISWRepository
+public class SwRepository : ISwRepository
 {
     private readonly DataContext _context;
     private readonly INormalizeCityName _normalizeCityName;
 
-    public SWRepository(DataContext context, INormalizeCityName normalizeCityName)
+    public SwRepository(DataContext context, INormalizeCityName normalizeCityName)
     {
         _context = context;
         _normalizeCityName = normalizeCityName;
     }
 
-    public IEnumerable<SWData> GetAllSWDatas()
+    public IEnumerable<SwData> GetAllSwDatas()
     {
-        return _context.SolarWatchDatas.ToList();
+        return _context.SolarWatchDataTable.ToList();
     }
 
-    public SWData GetSWData(string city, DateOnly date)
+    public SwData GetSwData(string city, DateOnly date)
     {
         city = _normalizeCityName.Normalize(city);
-        return _context.SolarWatchDatas.FirstOrDefault(c => c.City == city && c.Date == date);
+        return _context.SolarWatchDataTable.FirstOrDefault(c => c.City == city && c.Date == date);
     }
 
-    public async Task<SWData> GetSWDataById(int id)
+    public async Task<SwData> GetSwDataById(int id)
     {
-        return await _context.SolarWatchDatas.FirstOrDefaultAsync(c => c.Id == id);
+        return await _context.SolarWatchDataTable.FirstOrDefaultAsync(c => c.Id == id);
     }
 
-    public void AddSWData(SWData swData)
+    public void AddSwData(SwData swData)
     {
-        _context.SolarWatchDatas.Add(swData);
+        _context.SolarWatchDataTable.Add(swData);
         _context.SaveChanges();
     }
 
-    public async Task UpdateSWData(SWData swData)
+    public async Task UpdateSwData(SwData swData)
     {
-        var swDataFromDb = await _context.SolarWatchDatas.FirstOrDefaultAsync(c => c.Id == swData.Id);
+        var swDataFromDb = await _context.SolarWatchDataTable.FirstOrDefaultAsync(c => c.Id == swData.Id);
         if (swDataFromDb != null)
         {
             swDataFromDb.City = swData.City;
@@ -48,17 +48,17 @@ public class SWRepository : ISWRepository
             swDataFromDb.Sunrise = swData.Sunrise;
             swDataFromDb.Sunset = swData.Sunset;
 
-            _context.SolarWatchDatas.Update(swDataFromDb);
+            _context.SolarWatchDataTable.Update(swDataFromDb);
             await _context.SaveChangesAsync();
         }
     }
 
-    public void DeleteSWData(int id)
+    public void DeleteSwData(int id)
     {
-        var swData = _context.SolarWatchDatas.FirstOrDefault(c => c.Id == id);
+        var swData = _context.SolarWatchDataTable.FirstOrDefault(c => c.Id == id);
         if (swData != null)
         {
-            _context.SolarWatchDatas.Remove(swData);
+            _context.SolarWatchDataTable.Remove(swData);
             _context.SaveChanges();
         }
 

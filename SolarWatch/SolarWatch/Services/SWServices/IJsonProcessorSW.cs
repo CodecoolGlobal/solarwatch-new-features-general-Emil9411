@@ -1,6 +1,6 @@
 namespace SolarWatch.Services.SWServices;
 
-public interface IJsonProcessorSW
+public interface IJsonProcessorSw
 {
     TimeOnly[] SolarJsonProcessor(string data);
 }

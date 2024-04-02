@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace SolarWatch.Services.SWServices;
 
-public class JsonProcessorSW : IJsonProcessorSW
+public class JsonProcessorSw : IJsonProcessorSw
 {
     private static readonly string[] InputFormats = { "h:mm:ss tt", "hh:mm:ss tt" };
     private const string OutputFormat = "HH:mm:ss";
