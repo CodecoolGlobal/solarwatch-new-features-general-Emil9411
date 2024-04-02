@@ -2,7 +2,7 @@ using SolarWatch.Data;
 using SolarWatch.Model;
 using SolarWatch.Utilities;
 
-namespace SolarWatch.Services.GeoServices;
+namespace SolarWatch.Services.LocationServices;
 
 public class GeoRepository : IGeoRepository
 {
@@ -17,30 +17,30 @@ public class GeoRepository : IGeoRepository
     
     public IEnumerable<CityData> GetAllCities()
     {
-        return _context.CityDatas.ToList();
+        return _context.CityDataTable.ToList();
     }
     
     public CityData GetCity(string city)
     {
         city = _normalizeCityName.Normalize(city);
-        return _context.CityDatas.FirstOrDefault(c => c.City == city);
+        return _context.CityDataTable.FirstOrDefault(c => c.City == city);
     }
     
     public void AddCity(CityData city)
     {
-        _context.CityDatas.Add(city);
+        _context.CityDataTable.Add(city);
         _context.SaveChanges();
     }
     
     public void UpdateCity(CityData city)
     {
-        _context.CityDatas.Update(city);
+        _context.CityDataTable.Update(city);
         _context.SaveChanges();
     }
     
     public void DeleteCity(CityData city)
     {
-        _context.CityDatas.Remove(city);
+        _context.CityDataTable.Remove(city);
         _context.SaveChanges();
     }
 }

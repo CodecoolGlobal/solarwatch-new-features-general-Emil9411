@@ -1,4 +1,4 @@
-namespace SolarWatch.Services.GeoServices;
+namespace SolarWatch.Services.LocationServices;
 
 public interface IGeoApi
 {

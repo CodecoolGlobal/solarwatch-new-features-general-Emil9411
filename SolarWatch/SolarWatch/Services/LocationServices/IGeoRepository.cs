@@ -1,6 +1,6 @@
 using SolarWatch.Model;
 
-namespace SolarWatch.Services.GeoServices;
+namespace SolarWatch.Services.LocationServices;
 
 public interface IGeoRepository
 {

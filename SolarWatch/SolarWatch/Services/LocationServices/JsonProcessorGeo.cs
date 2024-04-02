@@ -1,7 +1,7 @@
 using System.Text.Json;
 using SolarWatch.Model;
 
-namespace SolarWatch.Services.GeoServices;
+namespace SolarWatch.Services.LocationServices;
 
 public class JsonProcessorGeo : IJsonProcessorGeo
 {
