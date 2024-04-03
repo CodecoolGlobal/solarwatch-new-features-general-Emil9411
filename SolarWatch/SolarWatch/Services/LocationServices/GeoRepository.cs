@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using SolarWatch.Data;
 using SolarWatch.Model;
 using SolarWatch.Utilities;
@@ -24,6 +25,11 @@ public class GeoRepository : IGeoRepository
     {
         city = _normalizeCityName.Normalize(city);
         return _context.CityDataTable.FirstOrDefault(c => c.City == city);
+    }
+    
+    public async Task<CityData> GetCityById(int id)
+    {
+        return await _context.CityDataTable.FirstOrDefaultAsync(c => c.Id == id);
     }
     
     public void AddCity(CityData city)
