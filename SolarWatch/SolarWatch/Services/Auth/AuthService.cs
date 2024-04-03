@@ -76,6 +76,11 @@ public class AuthService : IAuthService
         }
     }
     
+    public async Task<ApplicationUser> GetUser(string email)
+    {
+        return await _userManager.FindByEmailAsync(email);
+    }
+    
     public JwtSecurityToken Verify(string token)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
