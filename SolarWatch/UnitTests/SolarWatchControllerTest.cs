@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -44,616 +45,374 @@ public class SolarWatchControllerTest
 
     // get data endpoint tests
     [Test]
-    public async Task GetData_WhenCityAndDateAreValid_ReturnsOk()
+    public async Task GetData_WhenCityIsNullOrWhiteSpace_ReturnsBadRequest()
     {
         // Arrange
-        var swData = new SwData
-        {
-            City = City,
-            Date = Date,
-            Sunrise = new TimeOnly(8, 0),
-            Sunset = new TimeOnly(16, 0)
-        };
+        var city = string.Empty;
 
+        // Act
+        var result = await _swController.GetData(city, Date);
+        
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result.Result).Value, Is.EqualTo("City is required"));
+        });
+    }
+    
+    [Test]
+    public async Task GetData_WhenDateIsDefault_ReturnsBadRequest()
+    {
+        // Arrange
+        var date = default(DateOnly);
+
+        // Act
+        var result = await _swController.GetData(City, date);
+        
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result.Result).Value, Is.EqualTo("Date is required"));
+        });
+    }
+    
+    [Test]
+    public async Task GetData_WhenSwDataExistsInDb_ReturnsOk()
+    {
+        // Arrange
+        var swData = new SwData();
         _swRepositoryMock.Setup(x => x.GetSwData(City, Date)).Returns(swData);
 
         // Act
         var result = await _swController.GetData(City, Date);
-
+        
         // Assert
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
-            Assert.That((result.Result as OkObjectResult)?.Value, Is.EqualTo(swData));
+            Assert.That(((OkObjectResult)result.Result).Value, Is.EqualTo(swData));
         });
     }
-
+    
     [Test]
-    public async Task GetData_WhenCityIsInvalid_ReturnsBadRequest()
+    public async Task GetData_WhenGeoDataExistsInDb_ReturnsOk()
     {
         // Arrange
-        // Act
-        var result = await _swController.GetData("", Date);
+        var geoData = new CityData();
+        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns(geoData);
 
+        var solarJson = "solarJson";
+        _jsonErrorHandlingMock.Setup(x => x.SolarJsonError(solarJson)).Returns(new OkResult());
+        _swApiMock.Setup(x => x.GetSolarData(Date, geoData.Latitude, geoData.Longitude, geoData.TimeZone))
+            .ReturnsAsync(solarJson);
+
+        var solarData = new TimeOnly[2];
+        _jsonProcessorSwMock.Setup(x => x.SolarJsonProcessor(solarJson)).Returns(solarData);
+
+        var newCity = new SwData();
+        _swRepositoryMock.Setup(x => x.AddSwData(newCity));
+
+        // Act
+        var result = await _swController.GetData(City, Date);
+        
+        // Assert
+        Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
+    }
+    
+    [Test]
+    public async Task GetData_WhenGeoDataExistsInDbAndSolarJsonError_ReturnsError()
+    {
+        // Arrange
+        var geoData = new CityData();
+        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns(geoData);
+
+        var solarJson = "error";
+        _jsonErrorHandlingMock.Setup(x => x.SolarJsonError(solarJson)).Returns(new BadRequestObjectResult("error"));
+        _swApiMock.Setup(x => x.GetSolarData(Date, geoData.Latitude, geoData.Longitude, geoData.TimeZone))
+            .ReturnsAsync(solarJson);
+
+        // Act
+        var result = await _swController.GetData(City, Date);
+        
+        // Assert
+        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+    
+    [Test]
+    public async Task GetData_WhenGeoDataDoesNotExistInDbAndGeoJsonError_ReturnsError()
+    {
+        // Arrange
+        var geoData = "[]";
+        _geoApiMock.Setup(x => x.GetLongLat(City)).ReturnsAsync(geoData);
+        _jsonErrorHandlingMock.Setup(x => x.GeoJsonError(geoData)).Returns(new NotFoundObjectResult("Data not found"));
+
+        // Act
+        var result = await _swController.GetData(City, Date);
+        
+        // Assert
+        Assert.That(result.Result, Is.InstanceOf<NotFoundObjectResult>());
+    }
+    
+    [Test]
+    public async Task GetData_WhenGeoDataDoesNotExistInDbAndTimeZoneJsonError_ReturnsError()
+    {
+        // Arrange
+        var geoData = "geoData";
+        _geoApiMock.Setup(x => x.GetLongLat(City)).ReturnsAsync(geoData);
+        _jsonErrorHandlingMock.Setup(x => x.GeoJsonError(geoData)).Returns(new OkResult());
+
+        var geoCityData = new CityData();
+        _jsonProcessorGeoMock.Setup(x => x.LongLatProcessor(geoData)).Returns(geoCityData);
+
+        var latitude = geoCityData.Latitude.ToString(CultureInfo.InvariantCulture);
+        var longitude = geoCityData.Longitude.ToString(CultureInfo.InvariantCulture);
+        
+        var timeZoneJson = "error";
+        _timeZoneApiMock.Setup(x => x.GetTimeZone(latitude, longitude)).ReturnsAsync(timeZoneJson);
+        _jsonErrorHandlingMock.Setup(x => x.TimeZoneJsonError(timeZoneJson)).Returns(new BadRequestObjectResult("error"));
+
+        // Act
+        var result = await _swController.GetData(City, Date);
+        
         // Assert
         Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
     }
 
     [Test]
-    public async Task GetData_WhenDateIsInvalid_ReturnsBadRequest()
+    public async Task GetData_WhenGeoDataDoesNotExistInDbAndSolarJsonError_ReturnsBadRequest()
     {
         // Arrange
-        // Act
-        var result = await _swController.GetData(City, default);
+        var geoData = "geoData";
+        _geoApiMock.Setup(x => x.GetLongLat(City)).ReturnsAsync(geoData);
+        _jsonErrorHandlingMock.Setup(x => x.GeoJsonError(geoData)).Returns(new OkResult());
 
+        var geoCityData = new CityData();
+        _jsonProcessorGeoMock.Setup(x => x.LongLatProcessor(geoData)).Returns(geoCityData);
+
+        var latitude = geoCityData.Latitude.ToString(CultureInfo.InvariantCulture);
+        var longitude = geoCityData.Longitude.ToString(CultureInfo.InvariantCulture);
+        
+        var timeZoneJson = "timeZoneJson";
+        _timeZoneApiMock.Setup(x => x.GetTimeZone(latitude, longitude)).ReturnsAsync(timeZoneJson);
+        _jsonErrorHandlingMock.Setup(x => x.TimeZoneJsonError(timeZoneJson)).Returns(new OkResult());
+
+        var timeZoneCityData = new CityData();
+        _jsonProcessorTzMock.Setup(x => x.TimeZoneProcessor(timeZoneJson)).Returns(timeZoneCityData);
+
+        var newCityData = new CityData();
+        _cityDataCombinerMock.Setup(x => x.CombineCityData(geoCityData, timeZoneCityData)).Returns(newCityData);
+        
+        var normalizedCity = "normalizedCity";
+        _normalizeCityNameMock.Setup(x => x.Normalize(City)).Returns(normalizedCity);
+        
+        newCityData.City = normalizedCity;
+        
+        _geoRepositoryMock.Setup(x => x.AddCity(newCityData));
+        
+        var solarJson = "solarJson";
+        _swApiMock.Setup(x => x.GetSolarData(Date, newCityData.Latitude, newCityData.Longitude, newCityData.TimeZone))
+            .ReturnsAsync(solarJson);
+        _jsonErrorHandlingMock.Setup(x => x.SolarJsonError(solarJson)).Returns(new BadRequestObjectResult("error"));
+
+        // Act
+        var result = await _swController.GetData(City, Date);
+        
         // Assert
         Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
     }
-
+    
     [Test]
-    public async Task GetData_WhenCityAndDateAreValidButCityIsNotInDbAndApiCallFails_ReturnsBadRequest()
+    public async Task GetData_HttpRequestException_ReturnsBadRequest()
     {
         // Arrange
-        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns((CityData)null);
         _geoApiMock.Setup(x => x.GetLongLat(City)).ThrowsAsync(new HttpRequestException());
-        _jsonErrorHandlingMock.Setup(x => x.GeoJsonError(It.IsAny<string>()))
-            .Returns(new BadRequestObjectResult("error"));
-
+        
         // Act
         var result = await _swController.GetData(City, Date);
-
+        
         // Assert
         Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
     }
 
     [Test]
-    public async Task GetData_WhenCityAndDateAreValidButCityIsNotInDbAndApiCallSucceedsButJsonError_ReturnsBadRequest()
+    public async Task GetData_JsonException_ReturnsBadRequest()
     {
         // Arrange
-        var cityData = new CityData
-        {
-            City = City,
-            Latitude = 51.5074,
-            Longitude = 0.1278
-        };
-
-        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns((CityData)null);
-        _geoApiMock.Setup(x => x.GetLongLat(City)).ReturnsAsync("json");
-        _jsonErrorHandlingMock.Setup(x => x.GeoJsonError("json")).Returns(new OkResult());
-        _jsonProcessorGeoMock.Setup(x => x.LongLatProcessor("json")).Throws(new JsonException());
-
+        _geoApiMock.Setup(x => x.GetLongLat(City)).ThrowsAsync(new JsonException());
+        
         // Act
         var result = await _swController.GetData(City, Date);
-
+        
         // Assert
         Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
     }
-
-    [Test]
-    public async Task GetData_WhenCityAndDateAreValidButCityIsNotInDbAndApiCallSucceedsAndJsonError_ReturnsBadRequest()
-    {
-        // Arrange
-        var cityData = new CityData
-        {
-            City = City,
-            Latitude = 51.5074,
-            Longitude = 0.1278
-        };
-
-        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns((CityData)null);
-        _geoApiMock.Setup(x => x.GetLongLat(City)).ReturnsAsync("json");
-        _jsonErrorHandlingMock.Setup(x => x.GeoJsonError("json")).Returns(new OkResult());
-
-        var solarJson = "json";
-        _swApiMock.Setup(x => x.GetSolarData(Date, cityData.Latitude, cityData.Longitude, cityData.TimeZone))
-            .ReturnsAsync(solarJson);
-        _jsonErrorHandlingMock.Setup(x => x.SolarJsonError(solarJson)).Returns(new OkResult());
-        _jsonProcessorSwMock.Setup(x => x.SolarJsonProcessor(solarJson)).Throws(new JsonException());
-
-        // Act
-        var result = await _swController.GetData(City, Date);
-
-        // Assert
-        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
-    }
-
-    [Test]
-    public async Task GetData_WhenCityAndDateAreValidAndCityIsInDb_ReturnsOk()
-    {
-        // Arrange
-        var swData = new SwData
-        {
-            City = City,
-            Date = Date,
-            Sunrise = new TimeOnly(8, 0),
-            Sunset = new TimeOnly(16, 0)
-        };
-
-        _swRepositoryMock.Setup(x => x.GetSwData(City, Date)).Returns(swData);
-
-        // Act
-        var result = await _swController.GetData(City, Date);
-
-        // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
-            Assert.That((result.Result as OkObjectResult)?.Value, Is.EqualTo(swData));
-        });
-    }
-
-    [Test]
-    public async Task GetData_WhenCityAndDateAreValidAndCityIsInDbButJsonError_ReturnsBadRequest()
-    {
-        // Arrange
-        var cityData = new CityData
-        {
-            City = City,
-            Latitude = 51.5074,
-            Longitude = 0.1278
-        };
-
-        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns(cityData);
-
-        var solarJson = "json";
-        _swApiMock.Setup(x => x.GetSolarData(Date, cityData.Latitude, cityData.Longitude, cityData.TimeZone))
-            .ReturnsAsync(solarJson);
-        _jsonErrorHandlingMock.Setup(x => x.SolarJsonError(solarJson)).Returns(new BadRequestObjectResult("error"));
-
-        // Act
-        var result = await _swController.GetData(City, Date);
-
-        // Assert
-        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
-    }
-
-    [Test]
-    public async Task GetData_WhenCityAndDateAreValidAndCityIsInDbAndJsonProcessWorksAndDataIsAddedToDb_ReturnsOk()
-    {
-        // Arrange
-        var cityData = new CityData
-        {
-            City = City,
-            Latitude = 51.5074,
-            Longitude = 0.1278
-        };
-
-        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns(cityData);
-
-        var solarJson = "json";
-        _swApiMock.Setup(x => x.GetSolarData(Date, cityData.Latitude, cityData.Longitude, cityData.TimeZone))
-            .ReturnsAsync(solarJson);
-        _jsonErrorHandlingMock.Setup(x => x.SolarJsonError(solarJson)).Returns(new OkResult());
-
-        var solarData = new[] { new TimeOnly(8, 0), new TimeOnly(16, 0) };
-        _jsonProcessorSwMock.Setup(x => x.SolarJsonProcessor(solarJson)).Returns(solarData);
-
-        var swData = new SwData
-        {
-            City = City,
-            Date = Date,
-            Sunrise = solarData[0],
-            Sunset = solarData[1]
-        };
-
-        _swRepositoryMock.Setup(x => x.GetSwData(City, Date)).Returns((SwData)null);
-
-        // Act
-        var result = await _swController.GetData(City, Date);
-
-        // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
-            Assert.That((result.Result as OkObjectResult)?.Value, Is.EqualTo(swData));
-        });
-    }
-
-    [Test]
-    public async Task
-        GetData_WhenCityAndDateAreValidAndCityIsNotInDbAndApiCallSucceedsAndJsonProcessWorksAndDataIsAddedToDb_ReturnsOk()
-    {
-        // Arrange
-        var cityData = new CityData
-        {
-            City = City,
-            Latitude = 51.5074,
-            Longitude = 0.1278
-        };
-
-        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns((CityData)null);
-        _geoApiMock.Setup(x => x.GetLongLat(City)).ReturnsAsync("json");
-        _jsonErrorHandlingMock.Setup(x => x.GeoJsonError("json")).Returns(new OkResult());
-        _jsonProcessorGeoMock.Setup(x => x.LongLatProcessor("json")).Returns(cityData);
-
-        var solarJson = "json";
-        _swApiMock.Setup(x => x.GetSolarData(Date, cityData.Latitude, cityData.Longitude, cityData.TimeZone))
-            .ReturnsAsync(solarJson);
-        _jsonErrorHandlingMock.Setup(x => x.SolarJsonError(solarJson)).Returns(new OkResult());
-
-        var solarData = new[] { new TimeOnly(8, 0), new TimeOnly(16, 0) };
-        _jsonProcessorSwMock.Setup(x => x.SolarJsonProcessor(solarJson)).Returns(solarData);
-
-        var swData = new SwData
-        {
-            City = City,
-            Date = Date,
-            Sunrise = solarData[0],
-            Sunset = solarData[1]
-        };
-
-        _swRepositoryMock.Setup(x => x.GetSwData(City, Date)).Returns((SwData)null);
-
-        // Act
-        var result = await _swController.GetData(City, Date);
-
-        // Assert
-        Assert.Multiple(() =>
-        {
-            Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
-            Assert.That((result.Result as OkObjectResult)?.Value, Is.EqualTo(swData));
-        });
-    }
-
-    [Test]
-    public async Task GetData_WhenCityAndDateAreValidAndCityIsNotInDbAndApiCallSucceedsButJsonError_ReturnsBadRequest()
-    {
-        // Arrange
-        var cityData = new CityData
-        {
-            City = City,
-            Latitude = 51.5074,
-            Longitude = 0.1278
-        };
-
-        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns((CityData)null);
-        _geoApiMock.Setup(x => x.GetLongLat(City)).ReturnsAsync("json");
-        _jsonErrorHandlingMock.Setup(x => x.GeoJsonError("json")).Returns(new OkResult());
-        _jsonProcessorGeoMock.Setup(x => x.LongLatProcessor("json")).Returns(cityData);
-
-        var solarJson = "json";
-        _swApiMock.Setup(x => x.GetSolarData(Date, cityData.Latitude, cityData.Longitude, cityData.TimeZone))
-            .ReturnsAsync(solarJson);
-        _jsonErrorHandlingMock.Setup(x => x.SolarJsonError(solarJson)).Returns(new BadRequestObjectResult("error"));
-
-        // Act
-        var result = await _swController.GetData(City, Date);
-
-        // Assert
-        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
-    }
-
+    
     [Test]
     public async Task GetData_DbUpdateException_ReturnsBadRequest()
     {
         // Arrange
-        var cityData = new CityData
-        {
-            City = City,
-            Latitude = 51.5074,
-            Longitude = 0.1278
-        };
-
-        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns((CityData)null);
-        _geoApiMock.Setup(x => x.GetLongLat(City)).ReturnsAsync("json");
-        _jsonErrorHandlingMock.Setup(x => x.GeoJsonError("json")).Returns(new OkResult());
-        _jsonProcessorGeoMock.Setup(x => x.LongLatProcessor("json")).Returns(cityData);
-
-        var solarJson = "json";
-        _swApiMock.Setup(x => x.GetSolarData(Date, cityData.Latitude, cityData.Longitude, cityData.TimeZone))
-            .ReturnsAsync(solarJson);
-        _jsonErrorHandlingMock.Setup(x => x.SolarJsonError(solarJson)).Returns(new OkResult());
-
-        var solarData = new[] { new TimeOnly(8, 0), new TimeOnly(16, 0) };
-        _jsonProcessorSwMock.Setup(x => x.SolarJsonProcessor(solarJson)).Returns(solarData);
-
-        _swRepositoryMock.Setup(x => x.GetSwData(City, Date)).Returns((SwData)null);
-        _swRepositoryMock.Setup(x => x.AddSwData(It.IsAny<SwData>())).Throws(new DbUpdateException());
-
+        _geoApiMock.Setup(x => x.GetLongLat(City)).ThrowsAsync(new DbUpdateException());
+        
         // Act
         var result = await _swController.GetData(City, Date);
-
+        
         // Assert
         Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
     }
-
+    
     [Test]
-    public async Task GetData_Exception_ReturnsBadRequest()
+    public async Task GetData_UnknownException_ReturnsBadRequest()
     {
         // Arrange
-        var cityData = new CityData
-        {
-            City = City,
-            Latitude = 51.5074,
-            Longitude = 0.1278
-        };
-
-        _geoRepositoryMock.Setup(x => x.GetCity(City)).Returns((CityData)null);
-        _geoApiMock.Setup(x => x.GetLongLat(City)).ReturnsAsync("json");
-        _jsonErrorHandlingMock.Setup(x => x.GeoJsonError("json")).Returns(new OkResult());
-        _jsonProcessorGeoMock.Setup(x => x.LongLatProcessor("json")).Returns(cityData);
-
-        var solarJson = "json";
-        _swApiMock.Setup(x => x.GetSolarData(Date, cityData.Latitude, cityData.Longitude, cityData.TimeZone))
-            .ReturnsAsync(solarJson);
-        _jsonErrorHandlingMock.Setup(x => x.SolarJsonError(solarJson)).Returns(new OkResult());
-
-        var solarData = new[] { new TimeOnly(8, 0), new TimeOnly(16, 0) };
-        _jsonProcessorSwMock.Setup(x => x.SolarJsonProcessor(solarJson)).Returns(solarData);
-
-        _swRepositoryMock.Setup(x => x.GetSwData(City, Date)).Returns((SwData)null);
-        _swRepositoryMock.Setup(x => x.AddSwData(It.IsAny<SwData>())).Throws(new Exception());
-
+        _geoApiMock.Setup(x => x.GetLongLat(City)).ThrowsAsync(new Exception());
+        
         // Act
         var result = await _swController.GetData(City, Date);
-
+        
         // Assert
         Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
     }
-
-    // get all endpoint tests
+    
+    // get all data endpoint tests
     [Test]
     public void GetAll_ReturnsOk()
     {
         // Arrange
-        var swData = new List<SwData>
-        {
-            new SwData
-            {
-                City = City,
-                Date = Date,
-                Sunrise = new TimeOnly(8, 0),
-                Sunset = new TimeOnly(16, 0)
-            }
-        };
-
-        _swRepositoryMock.Setup(x => x.GetAllSwDatas()).Returns(swData);
+        var allData = new List<SwData>();
+        _swRepositoryMock.Setup(x => x.GetAllSwDatas()).Returns(allData);
 
         // Act
         var result = _swController.GetAll();
-
+        
         // Assert
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
-            Assert.That((result.Result as OkObjectResult)?.Value, Is.EqualTo(swData));
+            Assert.That(((OkObjectResult)result.Result).Value, Is.EqualTo(allData));
         });
     }
-
+    
     [Test]
-    public void GetAll_DbException_ReturnsBadRequest()
+    public void GetAll_DbUpdateException_ReturnsBadRequest()
     {
         // Arrange
         _swRepositoryMock.Setup(x => x.GetAllSwDatas()).Throws(new DbUpdateException());
 
         // Act
         var result = _swController.GetAll();
-
+        
         // Assert
         Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
     }
-
+    
     [Test]
-    public void GetAll_Exception_ReturnsBadRequest()
+    public void GetAll_UnknownException_ReturnsBadRequest()
     {
         // Arrange
         _swRepositoryMock.Setup(x => x.GetAllSwDatas()).Throws(new Exception());
 
         // Act
         var result = _swController.GetAll();
-
+        
         // Assert
         Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
     }
-
-    // update endpoint tests
+    
+    // update data endpoint tests
     [Test]
-    public async Task Update_WhenIdIsValid_ReturnsOk()
+    public async Task Update_WhenSwDataDoesNotExist_ReturnsNotFound()
     {
         // Arrange
         var id = 1;
-        var swData = new SwData
-        {
-            Id = id,
-            City = City,
-            Date = Date,
-            Sunrise = new TimeOnly(8, 0),
-            Sunset = new TimeOnly(16, 0)
-        };
-
-        _swRepositoryMock.Setup(x => x.GetSwDataById(id)).ReturnsAsync(swData);
-
-        var newSwData = new SwData
-        {
-            Id = id,
-            City = City,
-            Date = Date,
-            Sunrise = new TimeOnly(9, 0),
-            Sunset = new TimeOnly(17, 0)
-        };
+        var updatedData = new SwData();
+        _swRepositoryMock.Setup(x => x.GetSwDataById(id)).ReturnsAsync((SwData) null);
 
         // Act
-        var result = await _swController.Update(id, newSwData);
-
-        // Assert
-        Assert.Multiple(() => { Assert.That(result.Result, Is.InstanceOf<OkObjectResult>()); });
-    }
-
-    [Test]
-    public async Task Update_WhenSwDataIsNull_ReturnsNotFound()
-    {
-        // Arrange
-        var id = 1;
-
-        _swRepositoryMock.Setup(x => x.GetSwDataById(id)).ReturnsAsync((SwData)null);
-
-        var newSwData = new SwData
-        {
-            Id = id,
-            City = City,
-            Date = Date,
-            Sunrise = new TimeOnly(9, 0),
-            Sunset = new TimeOnly(17, 0)
-        };
-
-        // Act
-        var result = await _swController.Update(id, newSwData);
-
+        var result = await _swController.Update(id, updatedData);
+        
         // Assert
         Assert.That(result.Result, Is.InstanceOf<NotFoundResult>());
     }
-
+    
     [Test]
     public async Task Update_DbUpdateException_ReturnsBadRequest()
     {
         // Arrange
         var id = 1;
-        var swData = new SwData
-        {
-            Id = id,
-            City = City,
-            Date = Date,
-            Sunrise = new TimeOnly(8, 0),
-            Sunset = new TimeOnly(16, 0)
-        };
-
+        var updatedData = new SwData();
+        var swData = new SwData();
         _swRepositoryMock.Setup(x => x.GetSwDataById(id)).ReturnsAsync(swData);
-
-        var newSwData = new SwData
-        {
-            Id = id,
-            City = City,
-            Date = Date,
-            Sunrise = new TimeOnly(9, 0),
-            Sunset = new TimeOnly(17, 0)
-        };
-
-        _swRepositoryMock.Setup(x => x.UpdateSwData(newSwData)).Throws(new DbUpdateException());
+        _swRepositoryMock.Setup(x => x.UpdateSwData(swData)).Throws(new DbUpdateException());
 
         // Act
-        var result = await _swController.Update(id, newSwData);
-
+        var result = await _swController.Update(id, updatedData);
+        
         // Assert
         Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
     }
-
+    
     [Test]
-    public async Task Update_Exception_ReturnsBadRequest()
+    public async Task Update_UnknownException_ReturnsBadRequest()
     {
         // Arrange
         var id = 1;
-        var swData = new SwData
-        {
-            Id = id,
-            City = City,
-            Date = Date,
-            Sunrise = new TimeOnly(8, 0),
-            Sunset = new TimeOnly(16, 0)
-        };
-
+        var updatedData = new SwData();
+        var swData = new SwData();
         _swRepositoryMock.Setup(x => x.GetSwDataById(id)).ReturnsAsync(swData);
-
-        var newSwData = new SwData
-        {
-            Id = id,
-            City = City,
-            Date = Date,
-            Sunrise = new TimeOnly(9, 0),
-            Sunset = new TimeOnly(17, 0)
-        };
-
-        _swRepositoryMock.Setup(x => x.UpdateSwData(newSwData)).Throws(new Exception());
+        _swRepositoryMock.Setup(x => x.UpdateSwData(swData)).Throws(new Exception());
 
         // Act
-        var result = await _swController.Update(id, newSwData);
-
+        var result = await _swController.Update(id, updatedData);
+        
         // Assert
         Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
     }
-
-    // delete endpoint tests
+    
+    // delete data endpoint tests
     [Test]
-    public async Task Delete_WhenIdIsValid_ReturnsOk()
+    public async Task Delete_WhenSwDataDoesNotExist_ReturnsNotFound()
     {
         // Arrange
         var id = 1;
-        var swData = new SwData
-        {
-            Id = id,
-            City = City,
-            Date = Date,
-            Sunrise = new TimeOnly(8, 0),
-            Sunset = new TimeOnly(16, 0)
-        };
-
-        _swRepositoryMock.Setup(x => x.GetSwDataById(id)).ReturnsAsync(swData);
+        _swRepositoryMock.Setup(x => x.GetSwDataById(id)).ReturnsAsync((SwData) null);
 
         // Act
         var result = await _swController.Delete(id);
-
-        // Assert
-        Assert.That(result, Is.InstanceOf<OkResult>());
-    }
-
-    [Test]
-    public async Task Delete_WhenSwDataIsNull_ReturnsNotFound()
-    {
-        // Arrange
-        var id = 1;
-
-        _swRepositoryMock.Setup(x => x.GetSwDataById(id)).ReturnsAsync((SwData)null);
-
-        // Act
-        var result = await _swController.Delete(id);
-
+        
         // Assert
         Assert.That(result, Is.InstanceOf<NotFoundResult>());
     }
-
+    
     [Test]
     public async Task Delete_DbUpdateException_ReturnsBadRequest()
     {
         // Arrange
         var id = 1;
-        var swData = new SwData
-        {
-            Id = id,
-            City = City,
-            Date = Date,
-            Sunrise = new TimeOnly(8, 0),
-            Sunset = new TimeOnly(16, 0)
-        };
-
+        var swData = new SwData();
         _swRepositoryMock.Setup(x => x.GetSwDataById(id)).ReturnsAsync(swData);
         _swRepositoryMock.Setup(x => x.DeleteSwData(id)).Throws(new DbUpdateException());
 
         // Act
         var result = await _swController.Delete(id);
-
+        
         // Assert
         Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
     }
-
+    
     [Test]
-    public async Task Delete_Exception_ReturnsBadRequest()
+    public async Task Delete_UnknownException_ReturnsBadRequest()
     {
         // Arrange
         var id = 1;
-        var swData = new SwData
-        {
-            Id = id,
-            City = City,
-            Date = Date,
-            Sunrise = new TimeOnly(8, 0),
-            Sunset = new TimeOnly(16, 0)
-        };
-
+        var swData = new SwData();
         _swRepositoryMock.Setup(x => x.GetSwDataById(id)).ReturnsAsync(swData);
         _swRepositoryMock.Setup(x => x.DeleteSwData(id)).Throws(new Exception());
 
         // Act
         var result = await _swController.Delete(id);
-
+        
         // Assert
         Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
     }
