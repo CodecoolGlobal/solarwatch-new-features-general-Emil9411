@@ -164,4 +164,19 @@ public class AuthControllerTest
         Assert.That(result, Is.InstanceOf<OkResult>());
     }
     
+    [Test]
+    public async Task GetUser_WhenTokenIsInvalid_ReturnsNull()
+    {
+        // Arrange
+        var requestCookie = _authController.HttpContext.Request.Cookies["Authorization"];
+        _authServiceMock.Setup(x => x.Verify(requestCookie))
+            .Returns((JwtSecurityToken)null);
+
+        // Act
+        var result = await _authController.GetUser();
+
+        // Assert
+        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+    
 }
