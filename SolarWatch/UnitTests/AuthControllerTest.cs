@@ -2,10 +2,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
-using NUnit.Framework.Internal;
 using SolarWatch.Contracts;
 using SolarWatch.Controllers;
 using SolarWatch.Services.Auth;
@@ -14,7 +12,6 @@ namespace UnitTests;
 
 public class AuthControllerTest
 {
-    private readonly Mock<ILogger<AuthController>> _loggerMock = new();
     private readonly Mock<IAuthService> _authServiceMock = new();
     private AuthController _authController;
 
