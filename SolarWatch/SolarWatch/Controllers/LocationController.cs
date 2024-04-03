@@ -39,7 +39,7 @@ public class LocationController : ControllerBase
         _normalizeCityName = normalizeCityName;
     }
     
-    [HttpGet("getlocation"), Authorize(Roles = "User, Admin")]
+    [HttpGet("getlocation/{city}"), Authorize(Roles = "User, Admin")]
     public async Task<ActionResult<CityData>> GetLocation([Required] string city)
     {
         if (string.IsNullOrWhiteSpace(city))
@@ -107,6 +107,86 @@ public class LocationController : ControllerBase
         catch (Exception e)
         {
             _logger.LogError("Error while getting location data: {e}", e);
+            return BadRequest(e.Message);
+        }
+    }
+
+    [HttpGet("getall"), Authorize(Roles = "Admin")]
+    public ActionResult<IEnumerable<CityData>> GetAllCities()
+    {
+        try
+        {
+            var cities = _geoRepository.GetAllCities();
+            return Ok(cities);
+        }
+        catch (DbException e)
+        {
+            _logger.LogError("Error while accessing database: {e}", e);
+            return BadRequest(e.Message);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError("Error while getting all cities: {e}", e);
+            return BadRequest(e.Message);
+        }
+    }
+    
+    [HttpPatch("update"),Authorize(Roles = "Admin")]
+    public async Task<ActionResult<CityData>> Update([Required] int id, [FromBody] CityData updatedData)
+    {
+        try
+        {
+            var cityData = await _geoRepository.GetCityById(id);
+            if (cityData == null)
+            {
+                return NotFound();
+            }
+            
+            cityData.City = updatedData.City;
+            cityData.Latitude = updatedData.Latitude;
+            cityData.Longitude = updatedData.Longitude;
+            cityData.TimeZone = updatedData.TimeZone;
+            cityData.Country = updatedData.Country;
+            
+            _geoRepository.UpdateCity(cityData);
+            
+            return Ok(cityData);
+        }
+        catch (DbUpdateException e)
+        {
+            _logger.LogError("Error while updating database: {e}", e);
+            return BadRequest(e.Message);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError("Error while updating city data: {e}", e);
+            return BadRequest(e.Message);
+        }
+    }
+    
+    [HttpDelete("delete/{id}"), Authorize(Roles = "Admin")]
+    public async Task<ActionResult> Delete([Required] int id)
+    {
+        try
+        {
+            var cityData = await _geoRepository.GetCityById(id);
+            if (cityData == null)
+            {
+                return NotFound();
+            }
+            
+            _geoRepository.DeleteCity(cityData);
+            
+            return Ok();
+        }
+        catch (DbUpdateException e)
+        {
+            _logger.LogError("Error while updating database: {e}", e);
+            return BadRequest(e.Message);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError("Error while deleting city data: {e}", e);
             return BadRequest(e.Message);
         }
     }
