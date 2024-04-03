@@ -221,7 +221,8 @@ public class SwController : ControllerBase
             swData.Date = updatedData.Date;
             swData.Sunrise = updatedData.Sunrise;
             swData.Sunset = updatedData.Sunset;
-            // Add any other fields that you want to update
+            swData.Country = updatedData.Country;
+            swData.TimeZone = updatedData.TimeZone;
 
             await _swRepository.UpdateSwData(swData);
 
