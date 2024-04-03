@@ -2,11 +2,13 @@ import React from "react";
 import { useState } from "react";
 import "../design/index.css";
 
-function AdminUpdateForm({ data, onUpdate, clearData }) {
+function SolarWatchUpdateForm({ data, handleUpdate, clearData }) {
   const [formData, setFormData] = useState({
     id: data.id,
     city: data.city,
     date: data.date,
+    country: data.country,
+    timeZone: data.timeZone,
     sunrise: data.sunrise,
     sunset: data.sunset,
   });
@@ -19,7 +21,7 @@ function AdminUpdateForm({ data, onUpdate, clearData }) {
   };
 
   const handleUpdateClick = () => {
-    onUpdate(data.id, formData);
+    handleUpdate(data.id, formData);
     clearData();
   };
 
@@ -35,6 +37,14 @@ function AdminUpdateForm({ data, onUpdate, clearData }) {
       <br />
       <input type="text" name="city" value={formData.city} onChange={handleChange} />
       <br />
+      <label>Country:</label>
+      <br />
+      <input type="text" name="country" value={formData.country} onChange={handleChange} />
+      <br />
+      <label>Timezone:</label>
+      <br />
+      <input type="text" name="timezone" value={formData.timeZone} onChange={handleChange} />
+      <br />
       <label>Date:</label>
       <br />
       <input type="date" name="date" value={formData.date} onChange={handleChange} />
@@ -48,8 +58,9 @@ function AdminUpdateForm({ data, onUpdate, clearData }) {
       <input type="text" name="sunset" value={formData.sunset} onChange={handleChange} />
       <br />
       <button onClick={handleUpdateClick}>Update</button>
+      <button onClick={clearData}>Cancel</button>
     </div>
   );
 }
 
-export default AdminUpdateForm;
+export default SolarWatchUpdateForm;
