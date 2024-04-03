@@ -210,8 +210,6 @@ public class SwController : ControllerBase
     {
         try
         {
-            _logger.LogInformation("Updating data for id: {id}", id);
-            _logger.LogInformation("Updated data:  {updatedData.City}", updatedData.City);
             var swData = await _swRepository.GetSwDataById(id);
             if (swData == null)
             {
@@ -246,7 +244,6 @@ public class SwController : ControllerBase
     {
         try
         {
-            _logger.LogInformation("Deleting data for id: {id}", id);
             var swData = await _swRepository.GetSwDataById(id);
             if (swData == null)
             {
