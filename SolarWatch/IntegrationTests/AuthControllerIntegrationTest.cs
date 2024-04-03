@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using SolarWatch.Contracts;
 using SolarWatch.Model;
@@ -83,6 +84,30 @@ public class AuthControllerIntegrationTest
 
         Assert.NotNull(whoAmI);
         Assert.Equal("admin@admin.com", whoAmI.Email);
+    }
+
+    // getuser endpoint tests
+    [Fact]
+    public async Task GetUser_UserAuthorized_Test()
+    {
+        var app = new SolarWatchWebApplicationFactory();
+        var client = app.CreateClient();
+
+        var loginRequest = new AuthRequest("admin", "admin123");
+        var response = await client.PostAsJsonAsync("/api/Auth/login", loginRequest);
+
+        response.EnsureSuccessStatusCode();
+        var authResponse = await response.Content.ReadFromJsonAsync<AuthResponse>();
+
+        Assert.NotNull(authResponse);
+        Assert.Equal("admin", loginRequest.EmailOrUserName);
+
+        var getUserResponse = await client.GetAsync("/api/Auth/getuser");
+        getUserResponse.EnsureSuccessStatusCode();
+        var user = await getUserResponse.Content.ReadFromJsonAsync<ApplicationUser>();
+        
+        Assert.NotNull(user);
+        Assert.Equal("admin@admin.com", user.Email);
     }
 
 
