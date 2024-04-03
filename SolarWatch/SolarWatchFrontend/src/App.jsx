@@ -8,7 +8,6 @@ import Logo from "./img/sun.png";
 
 function App() {
   const [user, setUser] = useState(null);
-  const [email, setEmail] = useState(null);
   const location = useLocation();
 
   useEffect(() => {
@@ -24,7 +23,6 @@ function App() {
         const data = await response.json();
         if (data) {
           setUser(data.userName);
-          setEmail(data.email);
         }
       } catch (error) {
         console.log("Error", error);
