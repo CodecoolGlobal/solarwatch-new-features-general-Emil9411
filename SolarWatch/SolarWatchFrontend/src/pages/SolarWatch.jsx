@@ -4,12 +4,15 @@ import OneRowTable from "../components/OneRowTable";
 import "../design/index.css";
 
 function SolarWatch() {
+  const today = new Date().toISOString().slice(0, 10);
   const [data, setData] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const [city, setCity] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().substr(0, 10));
+  const [date, setDate] = useState(today);
+  const [loadingScreen, setLoadingScreen] = useState(false);
 
   async function fetchData() {
+    setLoadingScreen(true);
     try {
       const response = await fetch(`/api/SW/getdata/${city}/${date}`, {
         method: "GET",
@@ -21,6 +24,7 @@ function SolarWatch() {
       console.log(data);
       setData(data);
       setLoaded(true);
+      setLoadingScreen(false);
     } catch (e) {
       console.error(e);
     }
@@ -30,7 +34,7 @@ function SolarWatch() {
     setData(null);
     setLoaded(false);
     setCity("");
-    setDate("");
+    setDate(today);
   }
 
   return (
@@ -55,8 +59,10 @@ function SolarWatch() {
       ></input>
       <br />
       <br />
-      {loaded === false ? (
+      {loaded === false && loadingScreen === false ? (
         <button onClick={fetchData}>Get SolarWatch Data</button>
+      ) : loaded === false && loadingScreen === true ? (
+        <p>Loading...</p>
       ) : (
         <>
           <OneRowTable dataObject={data} />
