@@ -41,23 +41,25 @@ internal class SolarWatchWebApplicationFactory : WebApplicationFactory<Program>
             services.AddAuthentication("TestAdminScheme")
                 .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("TestAdminScheme", options => { });
 
-            using var scope = services.BuildServiceProvider().CreateScope();
-            var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
-            var usersContext = scope.ServiceProvider.GetRequiredService<UsersContext>();
-                
-            if(!dataContext.Database.CanConnect() || !usersContext.Database.CanConnect())
+            using (var scope = services.BuildServiceProvider().CreateScope())
             {
-                dataContext.Database.EnsureCreated();
-                usersContext.Database.Migrate();
-                usersContext.Database.EnsureCreated();
-            }
-            else
-            {
-                dataContext.Database.EnsureDeleted();
-                usersContext.Database.EnsureDeleted();
-                dataContext.Database.EnsureCreated();
-                usersContext.Database.Migrate();
-                usersContext.Database.EnsureCreated();
+                var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+                var usersContext = scope.ServiceProvider.GetRequiredService<UsersContext>();
+
+                if (!dataContext.Database.CanConnect() || !usersContext.Database.CanConnect())
+                {
+                    dataContext.Database.EnsureCreated();
+                    usersContext.Database.Migrate();
+                    usersContext.Database.EnsureCreated();
+                }
+                else
+                {
+                    dataContext.Database.EnsureDeleted();
+                    usersContext.Database.EnsureDeleted();
+                    dataContext.Database.EnsureCreated();
+                    usersContext.Database.Migrate();
+                    usersContext.Database.EnsureCreated();
+                }
             }
         });
     }
