@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -171,5 +172,171 @@ public class LocationControllerTest
         
         // Assert
         Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+    
+    // getall endpoint tests
+    [Test]
+    public void GetAll_WhenDataIsInDb_ReturnsOk()
+    {
+        // Arrange
+        var cityData = new List<CityData>();
+        _geoRepository.Setup(x => x.GetAllCities()).Returns(cityData);
+        
+        // Act
+        var result = _locationController.GetAllCities();
+        
+        // Assert
+        Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
+    }
+    
+    [Test]
+    public void GetAll_DbExceptionIsThrown_ReturnsBadRequest()
+    {
+        // Arrange
+        var dbException = new Mock<DbException>();
+        _geoRepository.Setup(x => x.GetAllCities()).Throws(dbException.Object);
+        
+        // Act
+        var result = _locationController.GetAllCities();
+        
+        // Assert
+        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+    
+    [Test]
+    public void GetAll_ExceptionIsThrown_ReturnsBadRequest()
+    {
+        // Arrange
+        _geoRepository.Setup(x => x.GetAllCities()).Throws(new Exception());
+        
+        // Act
+        var result = _locationController.GetAllCities();
+        
+        // Assert
+        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+    
+    // update endpoint tests
+    [Test]
+    public async Task Update_WhenCityDataIsNull_ReturnsNotFound()
+    {
+        // Arrange
+        var id = 1;
+        _geoRepository.Setup(x => x.GetCityById(id)).Returns(Task.FromResult<CityData>(null));
+        
+        // Act
+        var result = await _locationController.Update(id, new CityData());
+        
+        // Assert
+        Assert.That(result.Result, Is.InstanceOf<NotFoundResult>());
+    }
+    
+    [Test]
+    public async Task Update_WhenCityDataIsNotNull_ReturnsOk()
+    {
+        // Arrange
+        var id = 1;
+        var cityData = new CityData();
+        _geoRepository.Setup(x => x.GetCityById(id)).Returns(Task.FromResult(cityData));
+        
+        // Act
+        var result = await _locationController.Update(id, new CityData());
+        
+        // Assert
+        Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
+    }
+    
+    [Test]
+    public async Task Update_DbUpdateExceptionIsThrown_ReturnsBadRequest()
+    {
+        // Arrange
+        var id = 1;
+        var cityData = new CityData();
+        _geoRepository.Setup(x => x.GetCityById(id)).Returns(Task.FromResult(cityData));
+        _geoRepository.Setup(x => x.UpdateCity(cityData)).Throws(new DbUpdateException());
+        
+        // Act
+        var result = await _locationController.Update(id, new CityData());
+        
+        // Assert
+        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+    
+    [Test]
+    public async Task Update_ExceptionIsThrown_ReturnsBadRequest()
+    {
+        // Arrange
+        var id = 1;
+        var cityData = new CityData();
+        _geoRepository.Setup(x => x.GetCityById(id)).Returns(Task.FromResult(cityData));
+        _geoRepository.Setup(x => x.UpdateCity(cityData)).Throws(new Exception());
+        
+        // Act
+        var result = await _locationController.Update(id, new CityData());
+        
+        // Assert
+        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+    
+    // delete endpoint tests
+    [Test]
+    public async Task Delete_WhenCityDataIsNull_ReturnsNotFound()
+    {
+        // Arrange
+        var id = 1;
+        _geoRepository.Setup(x => x.GetCityById(id)).Returns(Task.FromResult<CityData>(null));
+        
+        // Act
+        var result = await _locationController.Delete(id);
+        
+        // Assert
+        Assert.That(result, Is.InstanceOf<NotFoundResult>());
+    }
+    
+    [Test]
+    public async Task Delete_WhenCityDataIsNotNull_ReturnsOk()
+    {
+        // Arrange
+        var id = 1;
+        var cityData = new CityData();
+        _geoRepository.Setup(x => x.GetCityById(id)).Returns(Task.FromResult(cityData));
+        
+        // Act
+        var result = await _locationController.Delete(id);
+        
+        // Assert
+        Assert.That(result, Is.InstanceOf<OkResult>());
+    }
+    
+    [Test]
+    public async Task Delete_DbUpdateExceptionIsThrown_ReturnsBadRequest()
+    {
+        // Arrange
+        var id = 1;
+        var cityData = new CityData();
+        _geoRepository.Setup(x => x.GetCityById(id)).Returns(Task.FromResult(cityData));
+        _geoRepository.Setup(x => x.DeleteCity(cityData)).Throws(new DbUpdateException());
+        
+        // Act
+        var result = await _locationController.Delete(id);
+        
+        // Assert
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+    
+    [Test]
+    public async Task Delete_ExceptionIsThrown_ReturnsBadRequest()
+    {
+        // Arrange
+        var id = 1;
+        var cityData = new CityData();
+        _geoRepository.Setup(x => x.GetCityById(id)).Returns(Task.FromResult(cityData));
+        _geoRepository.Setup(x => x.DeleteCity(cityData)).Throws(new Exception());
+        
+        // Act
+        var result = await _locationController.Delete(id);
+        
+        // Assert
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
     }
 }
