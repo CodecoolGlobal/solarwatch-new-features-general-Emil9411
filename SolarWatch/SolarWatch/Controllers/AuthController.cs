@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SolarWatch.Contracts;
+using SolarWatch.Model;
 using SolarWatch.Services.Auth;
 
 namespace SolarWatch.Controllers;
@@ -72,6 +73,23 @@ public class AuthController : ControllerBase
             var email = claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
             var username = claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name")?.Value;
             return Ok(new AuthResponse(email, username));
+        }
+        return BadRequest("No token found");
+    }
+    
+    [HttpGet("getuser"), Authorize(Roles = "User,Admin")]
+    public async Task<ActionResult<ApplicationUser>> GetUser()
+    {
+        var cookieString = Request.Cookies["Authorization"];
+        
+        var token = _authService.Verify(cookieString);
+        
+        if (token != null)
+        {
+            var claims = token.Claims;
+            var email = claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+            var user = await _authService.GetUser(email);
+            return Ok(user);
         }
         return BadRequest("No token found");
     }
