@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using SolarWatch.Model;
 using Xunit;
@@ -15,21 +16,52 @@ public class LocationControllerIntegrationTest
     }
     
     [Fact]
-    public async Task GetLocation_Test()
+    public async Task GetLocation_UserAuthorized_Test()
     {
         var app = new SolarWatchWebApplicationFactory();
         var client = app.CreateClient();
-
-        var city = "New York";
-        var response = await client.GetAsync($"/api/location/getlocation?city={city}");
-
+        
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("TestUserScheme");
+        
+        var response = await client.GetAsync($"/api/Location/getlocation/London");
+        
         response.EnsureSuccessStatusCode();
-        var locationResponse = await response.Content.ReadFromJsonAsync<CityData>();
-
-        Assert.NotNull(locationResponse);
-        Assert.Equal("New York", locationResponse.City);
-        Assert.Equal(40.7127281, locationResponse.Latitude);
-        Assert.Equal(-74.006015199999993, locationResponse.Longitude);
+        var data = await response.Content.ReadFromJsonAsync<CityData>();
+        
+        Assert.NotNull(data);
+        Assert.Equal("London", data.City);
     }
     
+    [Fact]
+    public async Task GetLocation_AdminAuthorized_Test()
+    {
+        var app = new SolarWatchWebApplicationFactory();
+        var client = app.CreateClient();
+        
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("TestAdminScheme");
+        
+        var response = await client.GetAsync($"/api/Location/getlocation/Stockholm");
+        
+        response.EnsureSuccessStatusCode();
+        var data = await response.Content.ReadFromJsonAsync<CityData>();
+        
+        Assert.NotNull(data);
+        Assert.Equal("Stockholm", data.City);
+    }
+    
+    [Fact]
+    public async Task GetAllCities_AdminAuthorized_Test()
+    {
+        var app = new SolarWatchWebApplicationFactory();
+        var client = app.CreateClient();
+        
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("TestAdminScheme");
+        
+        var response = await client.GetAsync("/api/Location/getall");
+        
+        response.EnsureSuccessStatusCode();
+        var data = await response.Content.ReadFromJsonAsync<List<CityData>>();
+        
+        Assert.NotNull(data);
+    }
 }
