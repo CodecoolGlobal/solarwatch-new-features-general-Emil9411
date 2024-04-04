@@ -5,7 +5,7 @@ using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using SolarWatch.Model;
 
-namespace SolarWatch.Services.Auth;
+namespace SolarWatch.Services.AuthServices;
 
 public class TokenService : ITokenService
 {

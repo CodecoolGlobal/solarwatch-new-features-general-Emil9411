@@ -1,4 +1,4 @@
-namespace SolarWatch.Services.Auth;
+namespace SolarWatch.Services.AuthServices;
 
 public record AuthResult(
     bool Success,

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using SolarWatch.Model;
 
-namespace SolarWatch.Services.Auth;
+namespace SolarWatch.Services.AuthServices;
 
 public class AuthSeeder
 {

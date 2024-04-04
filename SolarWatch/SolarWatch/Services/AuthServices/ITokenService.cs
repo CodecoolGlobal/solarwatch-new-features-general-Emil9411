@@ -1,6 +1,6 @@
 using SolarWatch.Model;
 
-namespace SolarWatch.Services.Auth;
+namespace SolarWatch.Services.AuthServices;
 
 public interface ITokenService
 {
