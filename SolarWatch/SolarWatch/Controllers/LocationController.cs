@@ -131,7 +131,7 @@ public class LocationController : ControllerBase
         }
     }
     
-    [HttpPatch("update"),Authorize(Roles = "Admin")]
+    [HttpPatch("update/{id}"),Authorize(Roles = "Admin")]
     public async Task<ActionResult<CityData>> Update([Required] int id, [FromBody] CityData updatedData)
     {
         try
