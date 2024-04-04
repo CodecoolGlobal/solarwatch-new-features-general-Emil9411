@@ -6,7 +6,7 @@ using Moq;
 using NUnit.Framework;
 using SolarWatch.Contracts;
 using SolarWatch.Controllers;
-using SolarWatch.Services.Auth;
+using SolarWatch.Services.AuthServices;
 
 namespace UnitTests;
 
@@ -165,18 +165,74 @@ public class AuthControllerTest
     }
     
     [Test]
-    public async Task GetUser_WhenTokenIsInvalid_ReturnsNull()
+    public async Task ChangePassword_WhenModelStateIsInvalid_ReturnsBadRequest()
+    {
+        // Arrange
+        _authController.ModelState.AddModelError("NewPassword", "New password is required");
+        var newPassword = "newPassword";
+
+        // Act
+        var result = await _authController.ChangePassword(newPassword);
+
+        // Assert
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+    
+    [Test]
+    public async Task ChangePassword_WhenTokenIsInvalid_ReturnsBadRequest()
     {
         // Arrange
         var requestCookie = _authController.HttpContext.Request.Cookies["Authorization"];
         _authServiceMock.Setup(x => x.Verify(requestCookie))
             .Returns((JwtSecurityToken)null);
+        var newPassword = "newPassword";
 
         // Act
-        var result = await _authController.GetUser();
+        var result = await _authController.ChangePassword(newPassword);
 
         // Assert
-        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
     }
     
+    [Test]
+    public async Task ChangePassword_WhenChangePasswordFails_ReturnsBadRequest()
+    {
+        // Arrange
+        var requestCookie = _authController.HttpContext.Request.Cookies["Authorization"];
+        var token = new JwtSecurityToken(claims: new List<Claim>
+        {
+            new Claim("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress", TestEmail)
+        });
+        _authServiceMock.Setup(x => x.Verify(requestCookie)).Returns(token);
+        var newPassword = "newPassword";
+        _authServiceMock.Setup(x => x.ChangePassword(TestEmail, newPassword))
+            .ReturnsAsync(new AuthResult(false, TestEmail, TestUsername, "Failed to change password"));
+
+        // Act
+        var result = await _authController.ChangePassword(newPassword);
+
+        // Assert
+        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+    }
+    
+    [Test]
+    public async Task ChangePassword_WhenChangePasswordSucceeds_ReturnsOk()
+    {
+        // Arrange
+        var requestCookie = _authController.HttpContext.Request.Cookies["Authorization"];
+        var token = new JwtSecurityToken(claims: new List<Claim>
+        {
+            new Claim("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress", TestEmail)
+        });
+        _authServiceMock.Setup(x => x.Verify(requestCookie)).Returns(token);
+        var newPassword = "newPassword";
+        _authServiceMock.Setup(x => x.ChangePassword(TestEmail, newPassword))
+            .ReturnsAsync(new AuthResult(true, TestEmail, TestUsername, ""));
+
+        // Act
+        var result = await _authController.ChangePassword(newPassword);
+
+        // Assert
+        Assert.That(result, Is.InstanceOf<OkResult>());
+    }
 }
