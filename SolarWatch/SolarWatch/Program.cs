@@ -7,9 +7,10 @@ using Microsoft.OpenApi.Models;
 using SolarWatch.Data;
 using SolarWatch.ErrorHandling;
 using SolarWatch.Model;
-using SolarWatch.Services.Auth;
+using SolarWatch.Services.AuthServices;
 using SolarWatch.Services.LocationServices;
-using SolarWatch.Services.SWServices;
+using SolarWatch.Services.SwServices;
+using SolarWatch.Services.UserServices;
 using SolarWatch.Utilities;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -52,6 +53,7 @@ void AddServices()
         options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
     builder.Services.AddScoped<IGeoRepository, GeoRepository>();
     builder.Services.AddScoped<ISwRepository, SwRepository>();
+    builder.Services.AddScoped<IUserRepository, UserRepository>();
     builder.Services.AddScoped<ICityDataCombiner, CityDataCombiner>();
     builder.Services.AddScoped<IAuthService, AuthService>();
     builder.Services.AddScoped<ITokenService, TokenService>();
