@@ -3,7 +3,7 @@ using SolarWatch.Data;
 using SolarWatch.Model;
 using SolarWatch.Utilities;
 
-namespace SolarWatch.Services.SWServices;
+namespace SolarWatch.Services.SwServices;
 
 public class SwRepository : ISwRepository
 {

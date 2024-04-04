@@ -1,6 +1,6 @@
 using SolarWatch.Model;
 
-namespace SolarWatch.Services.SWServices;
+namespace SolarWatch.Services.SwServices;
 
 public interface ISwRepository
 {

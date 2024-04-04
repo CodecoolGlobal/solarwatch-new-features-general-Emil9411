@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 
-namespace SolarWatch.Services.SWServices;
+namespace SolarWatch.Services.SwServices;
 
 public class JsonProcessorSw : IJsonProcessorSw
 {
