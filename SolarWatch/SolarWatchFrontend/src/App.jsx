@@ -1,10 +1,8 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
 import LogoutButton from "./components/LogoutButton";
-
-import "./design/index.css";
 import Logo from "./img/sun.png";
+import "./design/index.css";
 
 function App() {
   const [user, setUser] = useState(null);

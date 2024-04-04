@@ -9,7 +9,7 @@ function Profile() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const response = await fetch("/api/Auth/getuser", {
+        const response = await fetch("/api/User/getuser", {
           method: "GET",
           credentials: "include",
           headers: {
