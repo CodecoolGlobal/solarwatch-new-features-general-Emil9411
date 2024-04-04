@@ -1,12 +1,11 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using SolarWatch.Model;
-using System.Text.RegularExpressions;
 
-
-namespace SolarWatch.Services.Auth;
+namespace SolarWatch.Services.AuthServices;
 
 public class AuthService : IAuthService
 {
@@ -76,9 +75,23 @@ public class AuthService : IAuthService
         }
     }
     
-    public async Task<ApplicationUser> GetUser(string email)
+    public async Task<AuthResult> ChangePassword(string email, string newPassword)
     {
-        return await _userManager.FindByEmailAsync(email);
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user == null)
+        {
+            return InvalidEmail(email);
+        }
+        
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+        
+        if (!result.Succeeded)
+        {
+            return FailedRegistration(result, email, user.UserName);
+        }
+        
+        return new AuthResult(true, email, user.UserName, "");
     }
     
     public JwtSecurityToken Verify(string token)
@@ -134,6 +147,13 @@ private static bool IsValidEmail(string email)
     {
         var result = new AuthResult(false, email, userName, "");
         result.ErrorMessages.Add("Bad credentials", "Invalid password");
+        return result;
+    }
+    
+    private static AuthResult InvalidEmail(string email)
+    {
+        var result = new AuthResult(false, email, "", "");
+        result.ErrorMessages.Add("Bad credentials", "Invalid email");
         return result;
     }
     
