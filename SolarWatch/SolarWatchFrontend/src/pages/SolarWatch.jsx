@@ -1,5 +1,4 @@
-import React from "react";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import OneRowTable from "../components/OneRowTable";
 import "../design/index.css";
 
@@ -8,8 +7,31 @@ function SolarWatch() {
   const [data, setData] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const [city, setCity] = useState("");
+  const [userCity, setUserCity] = useState("");
+  const [userCityUsed, setUserCityUsed] = useState(false);
   const [date, setDate] = useState(today);
   const [loadingScreen, setLoadingScreen] = useState(false);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const response = await fetch("/api/Auth/getuser", {
+          method: "GET",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        const data = await response.json();
+        if (data) {
+          setUserCity(data.city);
+        }
+      } catch (error) {
+        console.log("Error", error);
+      }
+    }
+    fetchData();
+  }, []);
 
   async function fetchData() {
     setLoadingScreen(true);
@@ -21,10 +43,10 @@ function SolarWatch() {
         },
       });
       const data = await response.json();
-      console.log(data);
       setData(data);
       setLoaded(true);
       setLoadingScreen(false);
+      setUserCityUsed(false);
     } catch (e) {
       console.error(e);
     }
@@ -35,6 +57,12 @@ function SolarWatch() {
     setLoaded(false);
     setCity("");
     setDate(today);
+    setUserCityUsed(false);
+  }
+
+  function handleCityChange() {
+    setCity(userCity);
+    setUserCityUsed(true);
   }
 
   return (
@@ -60,7 +88,10 @@ function SolarWatch() {
       <br />
       <br />
       {loaded === false && loadingScreen === false ? (
-        <button onClick={fetchData}>Get SolarWatch Data</button>
+        <>
+          <button onClick={handleCityChange} disabled={userCityUsed}>Use my city</button>
+          <button onClick={fetchData}>Get SolarWatch Data</button>
+        </>
       ) : loaded === false && loadingScreen === true ? (
         <p>Loading...</p>
       ) : (
