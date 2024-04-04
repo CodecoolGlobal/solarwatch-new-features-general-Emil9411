@@ -1,8 +1,7 @@
-import React from "react";
-import "../design/table.css";
+import React, { useState, useEffect } from "react";
 import { capitalizeWords } from "../utilities/utils";
-import { useState, useEffect } from "react";
-import DeleteConfirmationModal from "./DeleteConfirmationModal";
+import MessageModal from "./MessageModal";
+import "../design/table.css";
 
 const AdminTable = ({ data, handleDelete, handleUpdate }) => {
   const [keys, setKeys] = useState([]);
@@ -33,13 +32,12 @@ const AdminTable = ({ data, handleDelete, handleUpdate }) => {
 
   return (
     <>
-      {showModal && (
-        <DeleteConfirmationModal
-          isOpen={showModal}
-          handleClose={handleCloseModal}
-          handleConfirm={handleConfirmDelete}
-        />
-      )}
+      <MessageModal
+        isOpen={showModal}
+        message="Are you sure you want to delete this item?"
+        handleClose={handleCloseModal}
+        handleConfirm={handleConfirmDelete}
+      />
       {data.length === 0 ? (
         <h1>No data to display</h1>
       ) : (
