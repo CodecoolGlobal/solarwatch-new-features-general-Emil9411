@@ -9,7 +9,7 @@ using SolarWatch.Controllers;
 using SolarWatch.ErrorHandling;
 using SolarWatch.Model;
 using SolarWatch.Services.LocationServices;
-using SolarWatch.Services.SWServices;
+using SolarWatch.Services.SwServices;
 using SolarWatch.Utilities;
 
 namespace UnitTests;
