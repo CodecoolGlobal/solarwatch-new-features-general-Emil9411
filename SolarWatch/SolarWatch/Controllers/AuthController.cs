@@ -1,8 +1,8 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SolarWatch.Contracts;
-using SolarWatch.Model;
-using SolarWatch.Services.Auth;
+using SolarWatch.Services.AuthServices;
 
 namespace SolarWatch.Controllers;
 
@@ -77,9 +77,14 @@ public class AuthController : ControllerBase
         return BadRequest("No token found");
     }
     
-    [HttpGet("getuser"), Authorize(Roles = "User,Admin")]
-    public async Task<ActionResult<ApplicationUser>> GetUser()
+    [HttpPatch("changepassword"), Authorize(Roles = "User,Admin")]
+    public async Task<ActionResult> ChangePassword([FromBody] string newPassword)
     {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+        
         var cookieString = Request.Cookies["Authorization"];
         
         var token = _authService.Verify(cookieString);
@@ -88,12 +93,20 @@ public class AuthController : ControllerBase
         {
             var claims = token.Claims;
             var email = claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
-            var user = await _authService.GetUser(email);
-            return Ok(user);
+            
+            var result = await _authService.ChangePassword(email, newPassword);
+            
+            if (!result.Success)
+            {
+                AddErrors(result);
+                return BadRequest(ModelState);
+            }
+            
+            return Ok();
         }
         return BadRequest("No token found");
     }
-
+    
     [HttpPost("logout"), Authorize(Roles = "User,Admin")]
     public ActionResult Logout()
     {
