@@ -7,6 +7,7 @@ function SolarWatch() {
   const [data, setData] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const [city, setCity] = useState("");
+  const [userEmail, setUserEmail] = useState("");
   const [userCity, setUserCity] = useState("");
   const [userCityUsed, setUserCityUsed] = useState(false);
   const [date, setDate] = useState(today);
@@ -14,17 +15,35 @@ function SolarWatch() {
 
   useEffect(() => {
     async function fetchData() {
+      let email = "";
       try {
-        const response = await fetch("/api/Auth/getuser", {
+        const getUserResponse = await fetch("/api/Auth/whoami", {
           method: "GET",
           credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },
         });
-        const data = await response.json();
-        if (data) {
-          setUserCity(data.city);
+        const getUserData = await getUserResponse.json();
+        console.log(getUserData);
+        if (getUserData) {
+          setUserEmail(getUserData.email);
+          email = getUserData.email;
+        } else {
+          throw new Error("User not found");
+        }
+        const getUserCityResponse = await fetch(`/api/User/getbyuserdata/${email}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        const getUserCityData = await getUserCityResponse.json();
+        console.log(getUserCityData);
+        if (getUserCityData) {
+          setUserCity(getUserCityData.city);
+        } else {
+          throw new Error("City not found");
         }
       } catch (error) {
         console.log("Error", error);
