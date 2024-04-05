@@ -5,13 +5,13 @@ namespace SolarWatch.Services.AuthServices;
 
 public class AuthSeeder
 {
-    private RoleManager<IdentityRole> _roleManager;
-    private UserManager<ApplicationUser> _userManager;
+    private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly UserManager<ApplicationUser> _userManager;
     
     public AuthSeeder(RoleManager<IdentityRole> roleManager, UserManager<ApplicationUser> userManager)
     {
-        this._roleManager = roleManager;
-        this._userManager = userManager;
+        _roleManager = roleManager;
+        _userManager = userManager;
     }
 
     public void AddRoles()
