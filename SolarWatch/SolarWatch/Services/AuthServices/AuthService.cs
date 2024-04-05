@@ -1,9 +1,9 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
-using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using SolarWatch.Model;
+using SolarWatch.Utilities;
 
 namespace SolarWatch.Services.AuthServices;
 
@@ -12,6 +12,7 @@ public class AuthService : IAuthService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ITokenService _tokenService;
     private readonly IConfiguration _configuration;
+    private readonly IsValidEmail _isValidEmail = new();
     
     public AuthService(UserManager<ApplicationUser> userManager, ITokenService tokenService, IConfiguration configuration)
     {
@@ -22,6 +23,11 @@ public class AuthService : IAuthService
     
     public async Task<AuthResult> RegisterAsync(string email, string username, string password, string city, string role)
     {
+        if (!_isValidEmail.EmailValidation(email))
+        {
+            return InvalidEmail(email);
+        }
+        
         var user = new ApplicationUser
         {
             Email = email,
@@ -41,7 +47,7 @@ public class AuthService : IAuthService
 
     public async Task<AuthResult> LoginAsync(string emailOrUserName, string password)
     {
-        if (IsValidEmail(emailOrUserName))
+        if (_isValidEmail.EmailValidation(emailOrUserName))
         {
             var user = await _userManager.FindByEmailAsync(emailOrUserName);
             if (user == null)
@@ -75,25 +81,6 @@ public class AuthService : IAuthService
         }
     }
     
-    public async Task<AuthResult> ChangePassword(string email, string newPassword)
-    {
-        var user = await _userManager.FindByEmailAsync(email);
-        if (user == null)
-        {
-            return InvalidEmail(email);
-        }
-        
-        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-        var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
-        
-        if (!result.Succeeded)
-        {
-            return FailedRegistration(result, email, user.UserName);
-        }
-        
-        return new AuthResult(true, email, user.UserName, "");
-    }
-    
     public JwtSecurityToken Verify(string token)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
@@ -122,19 +109,6 @@ public class AuthService : IAuthService
 
         return authResult;
     }
-    
-
-private static bool IsValidEmail(string email)
-{
-    // Regular expression for basic email validation
-    string emailRegex = @"^(?!\.)(""([^""\r\\]|\\[""\r\\])*""|"
-                       + @"([-a-z0-9!#$%&'*+/=?^_`{|}~]|(?<!\.)\.)*)(?<!\.)"
-                       + @"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?<!\.)\."
-                       + @"([a-z0-9!#$%&'*+/=?^_`{|}~-]|(?<!\.)\.)*[a-z0-9!#$%&'*+/=?^_`{|}~]"
-                       + @"$";
-    return Regex.IsMatch(email, emailRegex, RegexOptions.IgnoreCase);
-}
-
     
     private static AuthResult InvalidUsername(string username)
     {

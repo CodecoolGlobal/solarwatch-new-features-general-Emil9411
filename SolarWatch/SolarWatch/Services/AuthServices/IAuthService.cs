@@ -6,6 +6,5 @@ public interface IAuthService
 {
     Task<AuthResult> RegisterAsync(string email, string username, string password, string city, string role);
     Task<AuthResult> LoginAsync(string emailOrUserName, string password);
-    Task<AuthResult> ChangePassword(string email, string newPassword);
     JwtSecurityToken Verify(string token);
 }
