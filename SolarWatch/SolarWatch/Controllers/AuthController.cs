@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SolarWatch.Contracts;
@@ -73,36 +72,6 @@ public class AuthController : ControllerBase
             var email = claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
             var username = claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name")?.Value;
             return Ok(new AuthResponse(email, username));
-        }
-        return BadRequest("No token found");
-    }
-    
-    [HttpPatch("changepassword"), Authorize(Roles = "User,Admin")]
-    public async Task<ActionResult> ChangePassword([FromBody] string newPassword)
-    {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-        
-        var cookieString = Request.Cookies["Authorization"];
-        
-        var token = _authService.Verify(cookieString);
-        
-        if (token != null)
-        {
-            var claims = token.Claims;
-            var email = claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
-            
-            var result = await _authService.ChangePassword(email, newPassword);
-            
-            if (!result.Success)
-            {
-                AddErrors(result);
-                return BadRequest(ModelState);
-            }
-            
-            return Ok();
         }
         return BadRequest("No token found");
     }
