@@ -70,7 +70,7 @@ public class UserController : ControllerBase
         }
     }
     
-    [HttpDelete("delete/{id}"), Authorize(Roles = "Admin")]
+    [HttpDelete("delete/{id}"), Authorize(Roles = "User, Admin")]
     public ActionResult DeleteUser([Required] string id)
     {
         try
