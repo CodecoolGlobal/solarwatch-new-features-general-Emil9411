@@ -1,29 +1,30 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using SolarWatch.Data;
 using SolarWatch.Model;
+using SolarWatch.Utilities;
 
 namespace SolarWatch.Services.UserServices;
 
 public class UserRepository : IUserRepository
 {
     private readonly UsersContext _context;
-    private readonly UserManager<ApplicationUser> _userManager;
-    
+    private readonly IsValidEmail _isValidEmail = new();
+
     public UserRepository(UsersContext context, UserManager<ApplicationUser> userManager)
     {
         _context = context;
-        _userManager = userManager;
     }
     
     public IEnumerable<UserResponse> GetAllUsers()
     {
-        return _context.Users.Select(u => new UserResponse(u.Email, u.UserName, u.City, u.PhoneNumber));
+        return _context.Users.Select(u => new UserResponse(u.Id, u.UserName, u.City, u.PhoneNumber));
     }
     
     public UserResponse GetUserByEmailOrUserName(string email)
     {
         var user = _context.Users.FirstOrDefault(u => u.Email == email || u.UserName == email);
-        return new UserResponse(user.Email, user.UserName, user.City, user.PhoneNumber);
+        return new UserResponse(user.Id, user.UserName, user.City, user.PhoneNumber);
     }
     
     public ApplicationUser GetUserById(string id)
@@ -31,19 +32,19 @@ public class UserRepository : IUserRepository
         return _context.Users.FirstOrDefault(u => u.Id == id);
     }
 
-    public UserResponse UpdateUser(string id, UserResponse user)
+    public ActionResult<UserResponse> UpdateUser(string id, UserResponse user)
     {
-        var userFromDb = _context.Users.FirstOrDefault(u => u.Id == id);
-        if (userFromDb != null)
+        var userToUpdate = _context.Users.FirstOrDefault(u => u.Id == id);
+        if (userToUpdate == null)
         {
-            userFromDb.Email = user.Email;
-            userFromDb.UserName = user.UserName;
-            userFromDb.City = user.City;
-            userFromDb.PhoneNumber = user.PhoneNumber;
-            _context.Users.Update(userFromDb);
-            _context.SaveChanges();
+            return new BadRequestObjectResult("User not found");
         }
-        return new UserResponse(userFromDb.Email, userFromDb.UserName, userFromDb.City, userFromDb.PhoneNumber);
+        
+        userToUpdate.UserName = user.UserName;
+        userToUpdate.City = user.City;
+        userToUpdate.PhoneNumber = user.PhoneNumber;
+        _context.SaveChanges();
+        return new UserResponse(userToUpdate.Id, userToUpdate.UserName, userToUpdate.City, userToUpdate.PhoneNumber);
     }
 
     public void DeleteUser(string id)
