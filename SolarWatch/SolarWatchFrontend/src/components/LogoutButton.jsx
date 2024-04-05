@@ -31,7 +31,7 @@ function LogoutButton() {
 
   function handleCloseSuccessModal() {
     setShowSuccessModal(false);
-    location.pathname === "/" ? window.location.reload() : navigate("/");
+    location.pathname === "/" ? window.location.reload() : navigate("/"), window.location.reload();
   }
 
   function handleCloseErrorModal() {
