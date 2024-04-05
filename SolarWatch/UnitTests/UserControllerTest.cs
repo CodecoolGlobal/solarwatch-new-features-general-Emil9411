@@ -110,7 +110,7 @@ public class UserControllerTest
         // Arrange
         var id = "1";
         var mockUser = new UserResponse("", "", "", "");
-        var mockUserResponse = new UserResponse("test@test.com", "Test", "Test", "0000000000");
+        var mockUserResponse = new UserResponse("1", "Test", "Test", "0000000000");
         _userRepositoryMock.Setup(x => x.UpdateUser(id, mockUser)).Returns(mockUserResponse);
         
         // Act
