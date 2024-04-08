@@ -26,7 +26,7 @@ jobs:
     # Step to start SQL Server Docker container
     - name: Start SQL Server Container
       run: |
-            docker run -d -p 1434:1433 --name test_db -e ACCEPT_EULA=Y -e SA_PASSWORD=PaSsWoRd1Two3Four mcr.microsoft.com/mssql/server:latest
+            docker run -d -p 1433:1433 --name test_database -e ACCEPT_EULA=Y -e SA_PASSWORD=121212EmQ1994?! mcr.microsoft.com/mssql/server:latest
     # Step to wait for SQL Server to initialize (adjust sleep time as needed)
     - name: Wait for SQL Server Initialization
       run: sleep 30
@@ -44,4 +44,4 @@ jobs:
 
     # Step to stop and remove the SQL Server container after tests
     - name: Stop and Remove SQL Server Container
-      run: docker stop test_db && docker rm test_db
+      run: docker stop test_database && docker rm test_database
