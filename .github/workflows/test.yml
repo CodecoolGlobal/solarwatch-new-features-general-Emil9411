@@ -1,0 +1,47 @@
+# This workflow will build a .NET project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+
+name: .NET
+
+on:
+  push:
+    branches: [ "development" ]
+  pull_request:
+    branches: [ "development" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./SolarWatch
+
+    steps:
+    - uses: actions/checkout@v4
+     # Step to start Docker service
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+
+    # Step to start SQL Server Docker container
+    - name: Start SQL Server Container
+      run: |
+            docker run -d -p 1433:1433 --name test_database -e ACCEPT_EULA=Y -e SA_PASSWORD=121212EmQ1994?! mcr.microsoft.com/mssql/server:latest
+    # Step to wait for SQL Server to initialize (adjust sleep time as needed)
+    - name: Wait for SQL Server Initialization
+      run: sleep 30
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore
+    - name: Test
+      run: dotnet test --no-build --verbosity normal
+
+    # Step to stop and remove the SQL Server container after tests
+    - name: Stop and Remove SQL Server Container
+      run: docker stop test_database && docker rm test_database
