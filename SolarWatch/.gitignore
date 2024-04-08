@@ -631,4 +631,10 @@ fabric.properties
 .history
 .ionide
 
+# solarwatch/obj
+SolarWatch/obj
+
+# unittests/obj
+UnitTests/obj
+
 # End of https://www.toptal.com/developers/gitignore/api/rider,visualstudiocode,aspnetcore,react,reactnative
