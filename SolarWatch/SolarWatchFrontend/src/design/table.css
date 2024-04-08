@@ -1,27 +1,48 @@
 /* Style for the table */
 table {
-    border-collapse: collapse;
-    width: 100%;
-    margin-bottom: 20px;
-  }
-  
-  /* Style for table header cells */
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+/* Style for table header cells */
+th {
+  background-color: #444; /* Dark grey */
+  color: white;
+  border: 1px solid #333; /* Slightly darker grey */
+  padding: 8px;
+  text-align: left;
+}
+
+/* Style for table data cells */
+td {
+  border: 1px solid #333; /* Slightly darker grey */
+  padding: 8px;
+}
+
+/* Alternate row color */
+tr:nth-child(even) {
+  background-color: #666; /* Medium dark grey */
+}
+
+@media(prefers-color-scheme: dark) {
+  /* Dark mode */
   th {
-    background-color: #444; /* Dark grey */
-    color: white;
-    border: 1px solid #333; /* Slightly darker grey */
-    padding: 8px;
-    text-align: left;
+    background-color: #333;
   }
-  
-  /* Style for table data cells */
-  td {
-    border: 1px solid #333; /* Slightly darker grey */
-    padding: 8px;
-  }
-  
-  /* Alternate row color */
+
   tr:nth-child(even) {
-    background-color: #666; /* Medium dark grey */
+    background-color: #444;
   }
-  
+}
+
+@media(prefers-color-scheme: light) {
+  /* Light mode */
+  th {
+    background-color: #666;
+  }
+
+  tr:nth-child(even) {
+    background-color: #888;
+  }
+}
