@@ -15,11 +15,11 @@ public class DataContext : DbContext
     public DbSet<SwData>? SolarWatchDataTable { get; set; }
     public DbSet<CityData>? CityDataTable { get; set; }
     
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        var connectionString = _config.GetConnectionString("DatabaseConnection");
-        optionsBuilder.UseSqlServer(connectionString);
-    }
+    // protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    // {
+    //     var connectionString = _config.GetConnectionString("DatabaseConnection");
+    //     optionsBuilder.UseSqlServer(connectionString);
+    // }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

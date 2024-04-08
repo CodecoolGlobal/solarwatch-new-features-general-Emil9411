@@ -106,11 +106,25 @@ void AddDbContext()
     builder.Services.AddDbContext<DataContext>(options =>
     {
         options.UseSqlServer(builder.Configuration.GetConnectionString("DatabaseConnection"));
+        options.EnableServiceProviderCaching(false);
     });
     builder.Services.AddDbContext<UsersContext>(options =>
     {
         options.UseSqlServer(builder.Configuration.GetConnectionString("DatabaseConnection"));
+        options.EnableServiceProviderCaching(false);
     });
+    
+    using (var serviceScope = builder.Services.BuildServiceProvider().CreateScope())
+    {
+        var dataContext = serviceScope.ServiceProvider.GetRequiredService<DataContext>();
+        var usersContext = serviceScope.ServiceProvider.GetRequiredService<UsersContext>();
+
+        // Apply pending migrations for DataContext
+        dataContext.Database.Migrate();
+
+        // Apply pending migrations for UsersContext
+        usersContext.Database.Migrate();
+    }
 }
 
 void AddIdentity()

@@ -7,14 +7,18 @@ namespace SolarWatch.Data;
 
 public class UsersContext : IdentityDbContext<ApplicationUser, IdentityRole, string>
 {
-    public UsersContext(DbContextOptions<UsersContext> options) : base(options)
+    private readonly IConfiguration _config;
+    public UsersContext(DbContextOptions<UsersContext> options, IConfiguration config) : base(options)
     {
+        _config = config;
     }
     
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        optionsBuilder.UseSqlServer("Integrated Security=SSPI;Persist Security Info=False;Initial Catalog=SolarWatch;Data Source=EMIL\\SQLEXPRESS;TrustServerCertificate=true;");
-    }
+    // protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    // {
+    //     var connectionString = _config.GetConnectionString("DatabaseConnection");
+    //     Console.WriteLine(connectionString);
+    //     optionsBuilder.UseSqlServer(connectionString);
+    // }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

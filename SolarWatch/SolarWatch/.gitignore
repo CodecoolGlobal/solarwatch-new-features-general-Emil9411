@@ -397,4 +397,12 @@ $RECYCLE.BIN/
 
 # CP Sessions
 *.xd
+
+# Docker-compose files
+docker-compose.yml
+
+# ENV files
+.env
+
 # End of https://www.toptal.com/developers/gitignore/api/aspnetcore,rider,windows,visualstudiocode
+/obj/
