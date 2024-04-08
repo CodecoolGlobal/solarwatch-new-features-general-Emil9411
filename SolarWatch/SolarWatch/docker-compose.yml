@@ -1,0 +1,25 @@
+﻿services:
+  solarwatch:
+    image: solarwatch
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:80"
+    depends_on:
+      - db
+      - test_db
+  db:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      SA_PASSWORD: 121212EmQ1994?!
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+  test_db:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      SA_PASSWORD: PaSsWoRd1Two3Four
+      ACCEPT_EULA: "Y"
+    ports:
+        - "1434:1433"
