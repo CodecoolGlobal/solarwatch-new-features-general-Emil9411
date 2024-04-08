@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.VisualStudio.TestPlatform.TestHost;
 using SolarWatch.Data;
 
 namespace IntegrationTests;
@@ -28,12 +27,18 @@ internal class SolarWatchWebApplicationFactory : WebApplicationFactory<Program>
             
             var configuration = context.Configuration;
             var connectionString = configuration.GetConnectionString("TestDatabaseConnection");
-            
+
             services.AddDbContext<DataContext>(options =>
-                options.UseSqlServer(connectionString));
-            
+            {
+                options.UseSqlServer(connectionString);
+                options.EnableServiceProviderCaching(false);
+            });
+
             services.AddDbContext<UsersContext>(options =>
-                options.UseSqlServer(connectionString));
+            {
+                options.UseSqlServer(connectionString);
+                options.EnableServiceProviderCaching(false);
+            });
             
             services.AddAuthentication("TestUserScheme")
                 .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("TestUserScheme", options => { });
@@ -46,20 +51,9 @@ internal class SolarWatchWebApplicationFactory : WebApplicationFactory<Program>
                 var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
                 var usersContext = scope.ServiceProvider.GetRequiredService<UsersContext>();
 
-                if (!dataContext.Database.CanConnect() || !usersContext.Database.CanConnect())
-                {
-                    dataContext.Database.EnsureCreated();
-                    usersContext.Database.Migrate();
-                    usersContext.Database.EnsureCreated();
-                }
-                else
-                {
-                    dataContext.Database.EnsureDeleted();
-                    usersContext.Database.EnsureDeleted();
-                    dataContext.Database.EnsureCreated();
-                    usersContext.Database.Migrate();
-                    usersContext.Database.EnsureCreated();
-                }
+                dataContext.Database.Migrate();
+                
+                usersContext.Database.Migrate();
             }
         });
     }
