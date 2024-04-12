@@ -105,25 +105,21 @@ void AddDbContext()
 {
     builder.Services.AddDbContext<DataContext>(options =>
     {
-        options.UseSqlServer(builder.Configuration.GetConnectionString("DatabaseConnection"));
-        options.EnableServiceProviderCaching(false);
+        options.UseSqlServer(GetConnectionString());
     });
     builder.Services.AddDbContext<UsersContext>(options =>
     {
-        options.UseSqlServer(builder.Configuration.GetConnectionString("DatabaseConnection"));
-        options.EnableServiceProviderCaching(false);
+        options.UseSqlServer(GetConnectionString());
     });
-    
-    using (var serviceScope = builder.Services.BuildServiceProvider().CreateScope())
+
+    static string? GetConnectionString()
     {
-        var dataContext = serviceScope.ServiceProvider.GetRequiredService<DataContext>();
-        var usersContext = serviceScope.ServiceProvider.GetRequiredService<UsersContext>();
-
-        // Apply pending migrations for DataContext
-        dataContext.Database.Migrate();
-
-        // Apply pending migrations for UsersContext
-        usersContext.Database.Migrate();
+        var connectionString = Environment.GetEnvironmentVariable("DatabaseConnection");
+        if (connectionString == null)
+        {
+            throw new Exception("Database connection string is null");
+        }
+        return connectionString;
     }
 }
 
