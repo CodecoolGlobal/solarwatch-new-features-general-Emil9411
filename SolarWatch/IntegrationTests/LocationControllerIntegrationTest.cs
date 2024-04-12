@@ -6,6 +6,7 @@ using Xunit.Abstractions;
 
 namespace IntegrationTests;
 
+[Collection("IntegrationTests")]
 public class LocationControllerIntegrationTest
 {
     private readonly ITestOutputHelper _testOutputHelper;

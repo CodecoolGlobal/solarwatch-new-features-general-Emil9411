@@ -7,6 +7,7 @@ using Xunit.Abstractions;
 
 namespace IntegrationTests;
 
+[Collection("IntegrationTests")]
 public class AuthControllerIntegrationTest
 {
     private readonly ITestOutputHelper _testOutputHelper;

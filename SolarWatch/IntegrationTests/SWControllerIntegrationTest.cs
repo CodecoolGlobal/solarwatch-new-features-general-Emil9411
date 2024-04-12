@@ -7,6 +7,7 @@ using Xunit.Abstractions;
 
 namespace IntegrationTests;
 
+[Collection("IntegrationTests")]
 public class SwControllerIntegrationTest
 {
     private readonly ITestOutputHelper _testOutputHelper;
