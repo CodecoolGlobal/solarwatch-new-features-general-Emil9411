@@ -31,13 +31,11 @@ internal class SolarWatchWebApplicationFactory : WebApplicationFactory<Program>
             services.AddDbContext<DataContext>(options =>
             {
                 options.UseSqlServer(connectionString);
-                options.EnableServiceProviderCaching(false);
             });
 
             services.AddDbContext<UsersContext>(options =>
             {
                 options.UseSqlServer(connectionString);
-                options.EnableServiceProviderCaching(false);
             });
             
             services.AddAuthentication("TestUserScheme")
@@ -51,9 +49,23 @@ internal class SolarWatchWebApplicationFactory : WebApplicationFactory<Program>
                 var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
                 var usersContext = scope.ServiceProvider.GetRequiredService<UsersContext>();
 
-                dataContext.Database.Migrate();
-                
-                usersContext.Database.Migrate();
+                if (!dataContext.Database.CanConnect() || !usersContext.Database.CanConnect())
+                {
+                    
+                    dataContext.Database.EnsureCreated();
+                    usersContext.Database.Migrate(); 
+                    usersContext.Database.EnsureCreated();
+                }
+                else
+                {
+                    dataContext.Database.EnsureDeleted();
+                    usersContext.Database.EnsureDeleted();
+        
+                    // Recreate the database
+                    dataContext.Database.EnsureCreated();
+                    usersContext.Database.Migrate();
+                    usersContext.Database.EnsureCreated();
+                }
             }
         });
     }
