@@ -28,6 +28,12 @@ public class AuthSeeder
         var tAdmin = CreateAdminIfNotExists();
         tAdmin.Wait();
     }
+    
+    public void AddTestUser()
+    {
+        var tUser = CreateTestUserIfNotExists();
+        tUser.Wait();
+    }
 
     private async Task CreateAdminIfNotExists()
     {
@@ -43,6 +49,21 @@ public class AuthSeeder
             }
         }
     }
+    
+    private async Task CreateTestUserIfNotExists()
+    {
+        var userInDb = await _userManager.FindByEmailAsync("test@test.com");
+        if (userInDb == null)
+        {
+            var user = new ApplicationUser { UserName = "test", Email = "test@test.com", City = "Dublin"};
+            var userCreated = await _userManager.CreateAsync(user, "test123");
+            
+            if (userCreated.Succeeded)
+            {
+                await _userManager.AddToRoleAsync(user, "User");
+            }
+        }
+    }
 
     private async Task CreateAdminRole(RoleManager<IdentityRole> roleManager)
     {
@@ -52,5 +73,4 @@ public class AuthSeeder
     private async Task CreateUserRole(RoleManager<IdentityRole> roleManager)
     {
         await roleManager.CreateAsync(new IdentityRole("User"));
-    }
-}
+    } }
