@@ -10,6 +10,8 @@ function SolarWatchUpdateForm({ data, handleUpdate, clearData }) {
     timeZone: data.timeZone,
     sunrise: data.sunrise,
     sunset: data.sunset,
+    solarNoon: data.solarNoon,
+    dayLength: data.dayLength,
   });
 
   const handleChange = (e) => {
@@ -55,6 +57,14 @@ function SolarWatchUpdateForm({ data, handleUpdate, clearData }) {
       <label>Sunset:</label>
       <br />
       <input type="text" name="sunset" value={formData.sunset} onChange={handleChange} />
+      <br />
+      <label>Solar Noon:</label>
+      <br />
+      <input type="text" name="solarNoon" value={formData.solarNoon} onChange={handleChange} />
+      <br />
+      <label>Day Length:</label>
+      <br />
+      <input type="text" name="dayLength" value={formData.dayLength} onChange={handleChange} />
       <br />
       <button onClick={handleUpdateClick}>Update</button>
       <button onClick={clearData}>Cancel</button>
