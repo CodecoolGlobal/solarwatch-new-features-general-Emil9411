@@ -26,7 +26,7 @@ internal class SolarWatchWebApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll(typeof(DbContextOptions<UsersContext>));
             
             var configuration = context.Configuration;
-            var connectionString = configuration.GetConnectionString("TestDatabaseConnection");
+            var connectionString = configuration.GetConnectionString("DatabaseConnection");
 
             services.AddDbContext<DataContext>(options =>
             {
