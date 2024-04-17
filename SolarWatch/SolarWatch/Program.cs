@@ -27,6 +27,7 @@ using var scope = app.Services.CreateScope();
 var authenticationSeeder = scope.ServiceProvider.GetRequiredService<AuthSeeder>();
 authenticationSeeder.AddRoles();
 authenticationSeeder.AddAdmin();
+authenticationSeeder.AddTestUser();
 
 
 // Configure the HTTP request pipeline.
@@ -103,24 +104,15 @@ void ConfigureSwagger()
 
 void AddDbContext()
 {
+    var connectionString = builder.Configuration.GetConnectionString("DatabaseConnection");
     builder.Services.AddDbContext<DataContext>(options =>
     {
-        options.UseSqlServer(GetConnectionString());
+        options.UseSqlServer(connectionString);
     });
     builder.Services.AddDbContext<UsersContext>(options =>
     {
-        options.UseSqlServer(GetConnectionString());
+        options.UseSqlServer(connectionString);
     });
-
-    static string? GetConnectionString()
-    {
-        var connectionString = Environment.GetEnvironmentVariable("DatabaseConnection");
-        if (connectionString == null)
-        {
-            throw new Exception("Database connection string is null");
-        }
-        return connectionString;
-    }
 }
 
 void AddIdentity()
