@@ -55,6 +55,8 @@ void AddServices()
     builder.Services.AddScoped<IGeoRepository, GeoRepository>();
     builder.Services.AddScoped<ISwRepository, SwRepository>();
     builder.Services.AddScoped<IUserRepository, UserRepository>();
+    builder.Services.AddScoped<ILocationService, LocationService>();
+    builder.Services.AddScoped<ISwService, SwService>();
     builder.Services.AddScoped<ICityDataCombiner, CityDataCombiner>();
     builder.Services.AddScoped<IAuthService, AuthService>();
     builder.Services.AddScoped<ITokenService, TokenService>();
@@ -68,7 +70,6 @@ void AddServices()
     builder.Services.AddSingleton<IJsonProcessorSw, JsonProcessorSw>();
     builder.Services.AddSingleton<ITimeZoneApi, TimeZoneApi>();
     builder.Services.AddSingleton<IJsonProcessorTz, JsonProcessorTz>();
-    
 }
 
 void ConfigureSwagger()
