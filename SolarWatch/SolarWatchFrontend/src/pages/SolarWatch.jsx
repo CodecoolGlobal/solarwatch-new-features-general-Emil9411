@@ -7,7 +7,6 @@ function SolarWatch() {
   const [data, setData] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const [city, setCity] = useState("");
-  const [userEmail, setUserEmail] = useState("");
   const [userCity, setUserCity] = useState("");
   const [userCityUsed, setUserCityUsed] = useState(false);
   const [date, setDate] = useState(today);
@@ -27,7 +26,6 @@ function SolarWatch() {
         const getUserData = await getUserResponse.json();
         console.log(getUserData);
         if (getUserData) {
-          setUserEmail(getUserData.email);
           email = getUserData.email;
         } else {
           throw new Error("User not found");
