@@ -18,13 +18,13 @@ public class UserRepository : IUserRepository
     
     public IEnumerable<UserResponse> GetAllUsers()
     {
-        return _context.Users.Select(u => new UserResponse(u.Id, u.UserName, u.City, u.PhoneNumber));
+        return _context.Users.Select(u => new UserResponse(u.Id, u.UserName, u.City));
     }
     
     public UserResponse GetUserByEmailOrUserName(string email)
     {
         var user = _context.Users.FirstOrDefault(u => u.Email == email || u.UserName == email);
-        return new UserResponse(user.Id, user.UserName, user.City, user.PhoneNumber);
+        return new UserResponse(user.Id, user.UserName, user.City);
     }
     
     public ApplicationUser GetUserById(string id)
@@ -42,9 +42,8 @@ public class UserRepository : IUserRepository
         
         userToUpdate.UserName = user.UserName;
         userToUpdate.City = user.City;
-        userToUpdate.PhoneNumber = user.PhoneNumber;
         _context.SaveChanges();
-        return new UserResponse(userToUpdate.Id, userToUpdate.UserName, userToUpdate.City, userToUpdate.PhoneNumber);
+        return new UserResponse(userToUpdate.Id, userToUpdate.UserName, userToUpdate.City);
     }
 
     public void DeleteUser(string id)
