@@ -7,7 +7,7 @@ import DarkModeToggle from "react-dark-mode-toggle";
 
 function App() {
   const [user, setUser] = useState(null);
-  const [isDarkMode, setIsDarkMode] = useState(() => false);
+  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem("darkMode") === "true"? true : false);
   const location = useLocation();
 
   useEffect(() => {
@@ -41,9 +41,11 @@ function App() {
     if (isDarkMode) {
       document.body.className = "dark";
       container.className = "dark";
+      localStorage.setItem("darkMode", "true");
     } else {
       document.body.className = "light";
       container.className = "light";
+      localStorage.setItem("darkMode", "false");
     }
   }, [isDarkMode]);
 
