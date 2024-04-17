@@ -9,6 +9,8 @@ public class SwData
     public DateOnly Date { get; set; }
     public TimeOnly Sunrise { get; set; }
     public TimeOnly Sunset { get; set; }
+    public TimeOnly SolarNoon { get; set; }
+    public string? DayLength { get; set; }
     
     public override bool Equals(object? obj)
     {
@@ -18,11 +20,11 @@ public class SwData
         }
 
         var swData = (SwData)obj;
-        return City == swData.City && Date == swData.Date && Sunrise == swData.Sunrise && Sunset == swData.Sunset && Country == swData.Country && TimeZone == swData.TimeZone;
+        return City == swData.City && Date == swData.Date && Sunrise == swData.Sunrise && Sunset == swData.Sunset && Country == swData.Country && TimeZone == swData.TimeZone && SolarNoon == swData.SolarNoon && DayLength == swData.DayLength;
     }
     
     public override int GetHashCode()
     {
-        return HashCode.Combine(City, Date, Sunrise, Sunset, Country, TimeZone);
+        return HashCode.Combine(City, Date, Sunrise, Sunset, Country, TimeZone, SolarNoon, DayLength);
     }
 }
