@@ -7,7 +7,6 @@ function UserDataUpdateForm({ data, handleUpdate, clearData }) {
     email: data.email,
     userName: data.userName,
     city: data.city,
-    phoneNumber: data.phoneNumber,
   });
 
   const handleChange = (e) => {
@@ -41,15 +40,6 @@ function UserDataUpdateForm({ data, handleUpdate, clearData }) {
       <label>City:</label>
       <br />
       <input type="text" name="city" value={formData.city} onChange={handleChange} />
-      <br />
-      <label>Phone Number:</label>
-      <br />
-      <input
-        type="text"
-        name="phoneNumber"
-        value={formData.phoneNumber}
-        onChange={handleChange}
-      />
       <br />
       <button onClick={handleUpdateClick}>Update</button>
       <button onClick={clearData}>Cancel</button>
