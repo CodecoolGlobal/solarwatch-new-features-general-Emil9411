@@ -47,6 +47,8 @@ public class SwRepository : ISwRepository
             swDataFromDb.Date = swData.Date;
             swDataFromDb.Sunrise = swData.Sunrise;
             swDataFromDb.Sunset = swData.Sunset;
+            swDataFromDb.SolarNoon = swData.SolarNoon;
+            swDataFromDb.DayLength = swData.DayLength;
 
             _context.SolarWatchDataTable.Update(swDataFromDb);
             await _context.SaveChangesAsync();
