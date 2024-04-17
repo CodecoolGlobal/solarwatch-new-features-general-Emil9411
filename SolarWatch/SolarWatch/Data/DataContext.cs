@@ -32,6 +32,9 @@ public class DataContext : DbContext
         modelBuilder.Entity<SwData>()
             .Property(e => e.Sunset)
             .HasConversion(new TimeOnlyConverter());
+        modelBuilder.Entity<SwData>()
+            .Property(e => e.SolarNoon)
+            .HasConversion(new TimeOnlyConverter());
     }
 
 }
