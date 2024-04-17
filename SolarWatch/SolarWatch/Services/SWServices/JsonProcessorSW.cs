@@ -11,6 +11,7 @@ public class JsonProcessorSw : IJsonProcessorSw
     {
         TimeOnly returnSunrise = new();
         TimeOnly returnSunset = new();
+        TimeOnly returnSolarNoon = new();
 
         try
         {
@@ -19,9 +20,11 @@ public class JsonProcessorSw : IJsonProcessorSw
             var rootResults = json.RootElement.GetProperty("results");
             var sunrise = rootResults.GetProperty("sunrise");
             var sunset = rootResults.GetProperty("sunset");
+            var solarNoon = rootResults.GetProperty("solar_noon");
 
             var sunriseString = sunrise.GetString();
             var sunsetString = sunset.GetString();
+            var solarNoonString = solarNoon.GetString();
 
             foreach (var format in InputFormats)
             {
@@ -36,6 +39,12 @@ public class JsonProcessorSw : IJsonProcessorSw
                 {
                     returnSunset = new TimeOnly(sunsetTime.Hour, sunsetTime.Minute, sunsetTime.Second);
                 }
+
+                if (DateTime.TryParseExact(solarNoonString, format, CultureInfo.InvariantCulture, DateTimeStyles.None,
+                        out DateTime solarNoonTime))
+                {
+                    returnSolarNoon = new TimeOnly(solarNoonTime.Hour, solarNoonTime.Minute, solarNoonTime.Second);
+                }
             }
         }
         catch (JsonException)
@@ -47,6 +56,29 @@ public class JsonProcessorSw : IJsonProcessorSw
             return new TimeOnly[] { };
         }
 
-        return new[] { returnSunrise, returnSunset };
+        return new[] { returnSunrise, returnSunset, returnSolarNoon};
+    }
+
+    public string DayLengthJsonProcessor(string data)
+    {
+        try
+        {
+            var json = JsonDocument.Parse(data);
+
+            var rootResults = json.RootElement.GetProperty("results");
+            var dayLength = rootResults.GetProperty("day_length");
+
+            var dayLengthString = dayLength.GetString();
+
+            return dayLengthString;
+        }
+        catch (JsonException)
+        {
+            return "0";
+        }
+        catch (KeyNotFoundException)
+        {
+            return "0";
+        }
     }
 }
