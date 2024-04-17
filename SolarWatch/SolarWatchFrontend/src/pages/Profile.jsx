@@ -7,7 +7,6 @@ function Profile() {
   const [id, setId] = useState("");
   const [userName, setUserName] = useState("");
   const [city, setCity] = useState("");
-  const [phone, setPhone] = useState("");
 
   const [editButtonPressed, setEditButtonPressed] = useState(false);
   const [deleteAccountButtonPressed, setDeleteAccountButtonPressed] = useState(false);
@@ -50,7 +49,6 @@ function Profile() {
           setId(userData.id || "");
           setUserName(userData.userName || "");
           setCity(userData.city || "");
-          setPhone(userData.phoneNumber || "");
         } else {
           throw new Error("No user found");
         }
@@ -88,7 +86,6 @@ function Profile() {
       } else {
         setUserName(userName);
         setCity(city);
-        setPhone(phone);
         setShowProfileSavedModal(true);
       }
     } catch (error) {
@@ -177,15 +174,6 @@ function Profile() {
         type="text"
         value={city}
         onChange={(e) => setCity(e.target.value)}
-        disabled={!editButtonPressed}
-      />
-      <br />
-      <label>Phone:</label>
-      <br />
-      <input
-        type="text"
-        value={phone}
-        onChange={(e) => setPhone(e.target.value)}
         disabled={!editButtonPressed}
       />
       <br />
