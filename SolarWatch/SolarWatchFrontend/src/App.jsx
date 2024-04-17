@@ -3,9 +3,11 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import LogoutButton from "./components/LogoutButton";
 import Logo from "./img/sun.png";
 import "./design/index.css";
+import DarkModeToggle from "react-dark-mode-toggle";
 
 function App() {
   const [user, setUser] = useState(null);
+  const [isDarkMode, setIsDarkMode] = useState(() => false);
   const location = useLocation();
 
   useEffect(() => {
@@ -29,9 +31,25 @@ function App() {
     fetchData();
   }, [location.pathname]);
 
+  function toggleDarkMode() {
+    setIsDarkMode(!isDarkMode);
+  }
+
+  useEffect(() => {
+    console.log("Dark mode is", isDarkMode ? "on" : "off");
+    const container = document.getElementById("container");
+    if (isDarkMode) {
+      document.body.className = "dark";
+      container.className = "dark";
+    } else {
+      document.body.className = "light";
+      container.className = "light";
+    }
+  }, [isDarkMode]);
+
   return (
     <div className="App">
-      <div className="container">
+      <div id="container">
         <Link to="/">
           <img className="logo" src={Logo} alt="SolarWatch" />
         </Link>
@@ -65,6 +83,7 @@ function App() {
             <LogoutButton />
           </>
         )}
+        <DarkModeToggle onChange={toggleDarkMode} checked={isDarkMode} size={70} />
       </div>
       <Outlet />
     </div>
