@@ -81,6 +81,7 @@ public class SwController : ControllerBase
                 }
 
                 var solarData = _jsonProcessorSw.SolarJsonProcessor(solarJson);
+                var solarDayLength = _jsonProcessorSw.DayLengthJsonProcessor(solarJson);
 
                 var newCity = new SwData
                 {
@@ -89,7 +90,9 @@ public class SwController : ControllerBase
                     Sunrise = solarData[0],
                     Sunset = solarData[1],
                     Country = geoDataFromDb.Country,
-                    TimeZone = geoDataFromDb.TimeZone
+                    TimeZone = geoDataFromDb.TimeZone,
+                    SolarNoon = solarData[2],
+                    DayLength = solarDayLength
                 };
 
                 _swRepository.AddSwData(newCity);
@@ -149,6 +152,8 @@ public class SwController : ControllerBase
             }
             
             var solarDataFromApi = _jsonProcessorSw.SolarJsonProcessor(solarJsonFromApi);
+            var dayLengthFromApi = _jsonProcessorSw.DayLengthJsonProcessor(solarJsonFromApi);
+
             var newCityData = new SwData
             {
                 City = combinedData.City,
@@ -156,7 +161,9 @@ public class SwController : ControllerBase
                 Sunrise = solarDataFromApi[0],
                 Sunset = solarDataFromApi[1],
                 Country = combinedData.Country,
-                TimeZone = combinedData.TimeZone
+                TimeZone = combinedData.TimeZone,
+                SolarNoon = solarDataFromApi[2],
+                DayLength = dayLengthFromApi
             };
             
             _swRepository.AddSwData(newCityData);
@@ -223,6 +230,8 @@ public class SwController : ControllerBase
             swData.Sunset = updatedData.Sunset;
             swData.Country = updatedData.Country;
             swData.TimeZone = updatedData.TimeZone;
+            swData.SolarNoon = updatedData.SolarNoon;
+            swData.DayLength = updatedData.DayLength;
 
             await _swRepository.UpdateSwData(swData);
 
