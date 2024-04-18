@@ -107,11 +107,7 @@ public class SwController : ControllerBase
     {
         try
         {
-            var swData = await _swRepository.GetSwDataById(id);
-            if (swData == null)
-            {
-                return NotFound();
-            }
+            await _swRepository.GetSwDataById(id);
 
             _swRepository.DeleteSwData(id);
 
