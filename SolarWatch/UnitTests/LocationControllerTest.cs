@@ -9,6 +9,7 @@ using SolarWatch.Controllers;
 using SolarWatch.ErrorHandling;
 using SolarWatch.Model;
 using SolarWatch.Services.LocationServices;
+using SolarWatch.Services.SwServices;
 using SolarWatch.Utilities;
 
 namespace UnitTests;
@@ -16,281 +17,199 @@ namespace UnitTests;
 public class LocationControllerTest
 {
     private readonly Mock<ILogger<LocationController>> _logger = new();
-    private readonly Mock<ITimeZoneApi> _timeZoneApi = new();
-    private readonly Mock<IJsonProcessorTz> _jsonProcessorTz = new();
-    private readonly Mock<IGeoApi> _geoApi = new();
-    private readonly Mock<IJsonProcessorGeo> _jsonProcessorGeo = new();
     private readonly Mock<IGeoRepository> _geoRepository = new();
-    private readonly Mock<IJsonErrorHandling> _jsonErrorHandling = new();
-    private readonly Mock<ICityDataCombiner> _cityDataCombiner = new();
-    private readonly Mock<INormalizeCityName> _normalizeCityName = new();
+    private readonly Mock<ILocationService> _locationService = new();
+    
 
     private readonly LocationController _locationController;
 
     public LocationControllerTest()
     {
-        _locationController = new LocationController(_logger.Object, _timeZoneApi.Object, _jsonProcessorTz.Object,
-            _geoApi.Object, _jsonProcessorGeo.Object, _geoRepository.Object, _jsonErrorHandling.Object,
-            _cityDataCombiner.Object, _normalizeCityName.Object);
+        _locationController = new LocationController(_logger.Object, _locationService.Object, _geoRepository.Object);
     }
     
     private const string City = "New York";
     
     // get location endpoint tests
     [Test]
-    public async Task GetLocation_WhenCityIsEmpty_ReturnsBadRequest()
+    public async Task GetLocation_WhenCityIsNullOrWhiteSpace_ReturnsBadRequest()
     {
         // Arrange
         var city = string.Empty;
-        
+
+        var badRequestResult = new BadRequestObjectResult("City is required");
+        _locationService.Setup(x => x.GetLocation(city)).ReturnsAsync(badRequestResult);
+
         // Act
         var result = await _locationController.GetLocation(city);
-        
+
         // Assert
-        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+        Assert.Multiple(() =>
+        { 
+            Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result.Result).Value, Is.EqualTo("City is required"));
+        });
     }
     
     [Test]
-    public async Task GetLocation_WhenCityIsNotEmptyAndDataIsInDb_ReturnsOk()
+    public async Task GetLocation_WhenExceptionThrown_ReturnsBadRequest()
     {
         // Arrange
-        var cityData = new CityData();
-        _geoRepository.Setup(x => x.GetCity(City)).Returns(cityData);
-        
+        _locationService.Setup(x => x.GetLocation(City)).ThrowsAsync(new Exception());
+
         // Act
         var result = await _locationController.GetLocation(City);
-        
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result.Result).Value, Is.EqualTo("Exception of type 'System.Exception' was thrown."));
+        });
+    }
+    
+    // get all cities endpoint tests
+    [Test]
+    public void GetAllCities_WhenCalled_ReturnsOk()
+    {
+        // Arrange
+        var cities = new List<CityData>();
+        _geoRepository.Setup(x => x.GetAllCities()).Returns(cities);
+
+        // Act
+        var result = _locationController.GetAllCities();
+
         // Assert
         Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
     }
     
     [Test]
-    public async Task GetLocation_WhenCityIsNotEmptyAndDataIsNotInDbAndGeoApiReturnsError_ReturnsError()
-    {
-        // Arrange
-        var jsonGeo = "error";
-        _geoRepository.Setup(x => x.GetCity(City)).Returns((CityData) null);
-        _geoApi.Setup(x => x.GetLongLat(City)).ReturnsAsync(jsonGeo);
-        _jsonErrorHandling.Setup(x => x.GeoJsonError(jsonGeo)).Returns(new BadRequestObjectResult("error"));
-        
-        // Act
-        var result = await _locationController.GetLocation(City);
-        
-        // Assert
-        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
-    }
-    
-    [Test]
-    public async Task GetLocation_WhenCityIsNotEmptyAndDataIsNotInDbAndGeoApiReturnsDataAndTimeZoneApiReturnsError_ReturnsError()
-    {
-        // Arrange
-        var jsonGeo = "data";
-        var jsonTz = "error";
-        var data = new CityData();
-        _geoRepository.Setup(x => x.GetCity(City)).Returns((CityData) null);
-        _geoApi.Setup(x => x.GetLongLat(City)).ReturnsAsync(jsonGeo);
-        _jsonErrorHandling.Setup(x => x.GeoJsonError(jsonGeo)).Returns(new OkResult());
-        _jsonProcessorGeo.Setup(x => x.LongLatProcessor(jsonGeo)).Returns(data);
-        _timeZoneApi.Setup(x => x.GetTimeZone(data.Latitude.ToString(), data.Longitude.ToString())).ReturnsAsync(jsonTz);
-        _jsonErrorHandling.Setup(x => x.TimeZoneJsonError(jsonTz)).Returns(new BadRequestObjectResult("error"));
-        
-        // Act
-        var result = await _locationController.GetLocation(City);
-        
-        // Assert
-        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
-    }
-    
-    [Test]
-    public async Task GetLocation_HttpRequestExceptionIsThrown_ReturnsBadRequest()
-    {
-        // Arrange
-        _geoRepository.Setup(x => x.GetCity(City)).Returns((CityData) null);
-        _geoApi.Setup(x => x.GetLongLat(City)).ThrowsAsync(new HttpRequestException());
-        
-        // Act
-        var result = await _locationController.GetLocation(City);
-        
-        // Assert
-        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
-    }
-    
-    [Test]
-    public async Task GetLocation_JsonExceptionIsThrown_ReturnsBadRequest()
-    {
-        // Arrange
-        _geoRepository.Setup(x => x.GetCity(City)).Returns((CityData) null);
-        _geoApi.Setup(x => x.GetLongLat(City)).ReturnsAsync("data");
-        _jsonErrorHandling.Setup(x => x.GeoJsonError("data")).Throws(new JsonException());
-        
-        // Act
-        var result = await _locationController.GetLocation(City);
-        
-        // Assert
-        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
-    }
-    
-    [Test]
-    public async Task GetLocation_DbUpdateExceptionIsThrown_ReturnsBadRequest()
-    {
-        // Arrange
-        _geoRepository.Setup(x => x.GetCity(City)).Returns((CityData) null);
-        _geoApi.Setup(x => x.GetLongLat(City)).ReturnsAsync("data");
-        _jsonErrorHandling.Setup(x => x.GeoJsonError("data")).Returns(new OkResult());
-        _jsonProcessorGeo.Setup(x => x.LongLatProcessor("data")).Returns(new CityData());
-        _timeZoneApi.Setup(x => x.GetTimeZone(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync("data");
-        _jsonErrorHandling.Setup(x => x.TimeZoneJsonError("data")).Returns(new OkResult());
-        _jsonProcessorTz.Setup(x => x.TimeZoneProcessor("data")).Returns(new CityData());
-        _cityDataCombiner.Setup(x => x.CombineCityData(It.IsAny<CityData>(), It.IsAny<CityData>())).Returns(new CityData());
-        _normalizeCityName.Setup(x => x.Normalize(City)).Returns(City);
-        _geoRepository.Setup(x => x.AddCity(It.IsAny<CityData>())).Throws(new DbUpdateException());
-        
-        // Act
-        var result = await _locationController.GetLocation(City);
-        
-        // Assert
-        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
-    }
-    
-    [Test]
-    public async Task GetLocation_ExceptionIsThrown_ReturnsBadRequest()
-    {
-        // Arrange
-        _geoRepository.Setup(x => x.GetCity(City)).Returns((CityData) null);
-        _geoApi.Setup(x => x.GetLongLat(City)).ReturnsAsync("data");
-        _jsonErrorHandling.Setup(x => x.GeoJsonError("data")).Returns(new OkResult());
-        _jsonProcessorGeo.Setup(x => x.LongLatProcessor("data")).Returns(new CityData());
-        _timeZoneApi.Setup(x => x.GetTimeZone(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync("data");
-        _jsonErrorHandling.Setup(x => x.TimeZoneJsonError("data")).Returns(new OkResult());
-        _jsonProcessorTz.Setup(x => x.TimeZoneProcessor("data")).Returns(new CityData());
-        _cityDataCombiner.Setup(x => x.CombineCityData(It.IsAny<CityData>(), It.IsAny<CityData>())).Returns(new CityData());
-        _normalizeCityName.Setup(x => x.Normalize(City)).Returns(City);
-        _geoRepository.Setup(x => x.AddCity(It.IsAny<CityData>())).Throws(new Exception());
-        
-        // Act
-        var result = await _locationController.GetLocation(City);
-        
-        // Assert
-        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
-    }
-    
-    // getall endpoint tests
-    [Test]
-    public void GetAll_WhenDataIsInDb_ReturnsOk()
-    {
-        // Arrange
-        var cityData = new List<CityData>();
-        _geoRepository.Setup(x => x.GetAllCities()).Returns(cityData);
-        
-        // Act
-        var result = _locationController.GetAllCities();
-        
-        // Assert
-        Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
-    }
-    
-    [Test]
-    public void GetAll_DbExceptionIsThrown_ReturnsBadRequest()
-    {
-        // Arrange
-        var dbException = new Mock<DbException>();
-        _geoRepository.Setup(x => x.GetAllCities()).Throws(dbException.Object);
-        
-        // Act
-        var result = _locationController.GetAllCities();
-        
-        // Assert
-        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
-    }
-    
-    [Test]
-    public void GetAll_ExceptionIsThrown_ReturnsBadRequest()
+    public void GetAllCities_WhenExceptionThrown_ReturnsBadRequest()
     {
         // Arrange
         _geoRepository.Setup(x => x.GetAllCities()).Throws(new Exception());
-        
+
         // Act
         var result = _locationController.GetAllCities();
-        
+
         // Assert
-        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result.Result).Value, Is.EqualTo("Exception of type 'System.Exception' was thrown."));
+        });
     }
     
-    // update endpoint tests
+    // update city endpoint tests
     [Test]
-    public async Task Update_WhenCityDataIsNull_ReturnsNotFound()
+    public async Task Update_WhenCityDataIsNull_ReturnsBadRequest()
     {
         // Arrange
         var id = 1;
-        _geoRepository.Setup(x => x.GetCityById(id)).Returns(Task.FromResult<CityData>(null));
-        
+        var updatedData = new CityData();
+        var badRequestResult = new BadRequestObjectResult("City data is required");
+        _locationService.Setup(x => x.UpdateLocation(id, updatedData)).ReturnsAsync(badRequestResult);
+
         // Act
-        var result = await _locationController.Update(id, new CityData());
-        
+        var result = await _locationController.Update(id, updatedData);
+
         // Assert
-        Assert.That(result.Result, Is.InstanceOf<NotFoundResult>());
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result.Result).Value, Is.EqualTo("City data is required"));
+        });
     }
     
     [Test]
-    public async Task Update_WhenCityDataIsNotNull_ReturnsOk()
+    public async Task Update_WhenExceptionThrown_ReturnsBadRequest()
     {
         // Arrange
         var id = 1;
-        var cityData = new CityData();
-        _geoRepository.Setup(x => x.GetCityById(id)).Returns(Task.FromResult(cityData));
-        
+        var updatedData = new CityData();
+        _locationService.Setup(x => x.UpdateLocation(id, updatedData)).ThrowsAsync(new Exception());
+
         // Act
-        var result = await _locationController.Update(id, new CityData());
-        
+        var result = await _locationController.Update(id, updatedData);
+
         // Assert
-        Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result.Result).Value, Is.EqualTo("Exception of type 'System.Exception' was thrown."));
+        });
     }
     
     [Test]
-    public async Task Update_DbUpdateExceptionIsThrown_ReturnsBadRequest()
+    public async Task Update_WhenDbUpdateExceptionThrown_ReturnsBadRequest()
     {
         // Arrange
         var id = 1;
-        var cityData = new CityData();
-        _geoRepository.Setup(x => x.GetCityById(id)).Returns(Task.FromResult(cityData));
-        _geoRepository.Setup(x => x.UpdateCity(cityData)).Throws(new DbUpdateException());
-        
+        var updatedData = new CityData();
+        _locationService.Setup(x => x.UpdateLocation(id, updatedData)).ThrowsAsync(new DbUpdateException());
+
         // Act
-        var result = await _locationController.Update(id, new CityData());
-        
+        var result = await _locationController.Update(id, updatedData);
+
         // Assert
-        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result.Result).Value, Is.EqualTo("Exception of type 'Microsoft.EntityFrameworkCore.DbUpdateException' was thrown."));
+        });
     }
     
-    [Test]
-    public async Task Update_ExceptionIsThrown_ReturnsBadRequest()
-    {
-        // Arrange
-        var id = 1;
-        var cityData = new CityData();
-        _geoRepository.Setup(x => x.GetCityById(id)).Returns(Task.FromResult(cityData));
-        _geoRepository.Setup(x => x.UpdateCity(cityData)).Throws(new Exception());
-        
-        // Act
-        var result = await _locationController.Update(id, new CityData());
-        
-        // Assert
-        Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
-    }
-    
-    // delete endpoint tests
+    // delete city endpoint tests
     [Test]
     public async Task Delete_WhenCityDataIsNull_ReturnsNotFound()
     {
         // Arrange
         var id = 1;
-        _geoRepository.Setup(x => x.GetCityById(id)).Returns(Task.FromResult<CityData>(null));
-        
+        _geoRepository.Setup(x => x.GetCityById(id)).ReturnsAsync((CityData) null);
+
         // Act
         var result = await _locationController.Delete(id);
-        
+
         // Assert
         Assert.That(result, Is.InstanceOf<NotFoundResult>());
+    }
+    
+    [Test]
+    public async Task Delete_WhenExceptionThrown_ReturnsBadRequest()
+    {
+        // Arrange
+        var id = 1;
+        _geoRepository.Setup(x => x.GetCityById(id)).ThrowsAsync(new Exception());
+
+        // Act
+        var result = await _locationController.Delete(id);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result).Value, Is.EqualTo("Exception of type 'System.Exception' was thrown."));
+        });
+    }
+    
+    [Test]
+    public async Task Delete_WhenDbUpdateExceptionThrown_ReturnsBadRequest()
+    {
+        // Arrange
+        var id = 1;
+        var cityData = new CityData();
+        _geoRepository.Setup(x => x.GetCityById(id)).ReturnsAsync(cityData);
+        _geoRepository.Setup(x => x.DeleteCity(cityData)).Throws(new DbUpdateException());
+
+        // Act
+        var result = await _locationController.Delete(id);
+
+        // Assert
+        Assert.Multiple(() =>
+        {
+            Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result).Value, Is.EqualTo("Exception of type 'Microsoft.EntityFrameworkCore.DbUpdateException' was thrown."));
+        });
     }
     
     [Test]
@@ -299,44 +218,12 @@ public class LocationControllerTest
         // Arrange
         var id = 1;
         var cityData = new CityData();
-        _geoRepository.Setup(x => x.GetCityById(id)).Returns(Task.FromResult(cityData));
-        
+        _geoRepository.Setup(x => x.GetCityById(id)).ReturnsAsync(cityData);
+
         // Act
         var result = await _locationController.Delete(id);
-        
+
         // Assert
         Assert.That(result, Is.InstanceOf<OkResult>());
-    }
-    
-    [Test]
-    public async Task Delete_DbUpdateExceptionIsThrown_ReturnsBadRequest()
-    {
-        // Arrange
-        var id = 1;
-        var cityData = new CityData();
-        _geoRepository.Setup(x => x.GetCityById(id)).Returns(Task.FromResult(cityData));
-        _geoRepository.Setup(x => x.DeleteCity(cityData)).Throws(new DbUpdateException());
-        
-        // Act
-        var result = await _locationController.Delete(id);
-        
-        // Assert
-        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
-    }
-    
-    [Test]
-    public async Task Delete_ExceptionIsThrown_ReturnsBadRequest()
-    {
-        // Arrange
-        var id = 1;
-        var cityData = new CityData();
-        _geoRepository.Setup(x => x.GetCityById(id)).Returns(Task.FromResult(cityData));
-        _geoRepository.Setup(x => x.DeleteCity(cityData)).Throws(new Exception());
-        
-        // Act
-        var result = await _locationController.Delete(id);
-        
-        // Assert
-        Assert.That(result, Is.InstanceOf<BadRequestObjectResult>());
     }
 }

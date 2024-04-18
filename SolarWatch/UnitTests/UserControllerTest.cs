@@ -55,7 +55,7 @@ public class UserControllerTest
     public void GetUserByEmailOrUserName_WhenCalled_ReturnsOkResult()
     {
         // Arrange
-        var mockUserResponse = new UserResponse("", "", "", "");
+        var mockUserResponse = new UserResponse("", "", "");
         _userRepositoryMock.Setup(x => x.GetUserByEmailOrUserName(It.IsAny<string>())).Returns(mockUserResponse);
 
         // Act
@@ -109,8 +109,8 @@ public class UserControllerTest
     {
         // Arrange
         var id = "1";
-        var mockUser = new UserResponse("", "", "", "");
-        var mockUserResponse = new UserResponse("1", "Test", "Test", "0000000000");
+        var mockUser = new UserResponse("", "", "");
+        var mockUserResponse = new UserResponse("1", "Test", "Test");
         _userRepositoryMock.Setup(x => x.UpdateUser(id, mockUser)).Returns(mockUserResponse);
         
         // Act
@@ -127,7 +127,7 @@ public class UserControllerTest
         _userRepositoryMock.Setup(x => x.UpdateUser(It.IsAny<string>(), It.IsAny<UserResponse>())).Throws(new Exception());
         
         // Act
-        var result = _userController.UpdateUser("1", new UserResponse("", "", "", ""));
+        var result = _userController.UpdateUser("1", new UserResponse("", "", ""));
         
         // Assert
         Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
