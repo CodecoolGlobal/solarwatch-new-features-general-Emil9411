@@ -33,21 +33,6 @@ public class LocationController : ControllerBase
             var cityData = await _locationService.GetLocation(city);
             return cityData;
         }
-        catch (HttpRequestException e)
-        {
-            _logger.LogError("Error while calling Geo API: {e}", e);
-            return BadRequest(e.Message);
-        }
-        catch (JsonException e)
-        {
-            _logger.LogError("Error while processing Geo API response: {e}", e);
-            return BadRequest(e.Message);
-        }
-        catch (DbUpdateException e)
-        {
-            _logger.LogError("Error while accessing database: {e}", e);
-            return BadRequest(e.Message);
-        }
         catch (Exception e)
         {
             _logger.LogError("Error while getting location data: {e}", e);
@@ -62,11 +47,6 @@ public class LocationController : ControllerBase
         {
             var cities = _geoRepository.GetAllCities();
             return Ok(cities);
-        }
-        catch (DbException e)
-        {
-            _logger.LogError("Error while accessing database: {e}", e);
-            return BadRequest(e.Message);
         }
         catch (Exception e)
         {
