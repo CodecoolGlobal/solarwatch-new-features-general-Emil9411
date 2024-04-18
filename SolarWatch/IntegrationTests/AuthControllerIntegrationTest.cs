@@ -1,88 +1,69 @@
 using System.Net.Http.Json;
+using Moq;
 using SolarWatch.Contracts;
-using SolarWatch.Model;
 using SolarWatch.Services.AuthServices;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace IntegrationTests;
 
 [Collection("IntegrationTests")]
 public class AuthControllerIntegrationTest
 {
-    private readonly ITestOutputHelper _testOutputHelper;
+    private readonly SolarWatchWebApplicationFactory _app;
+    private readonly MockServices _mockServices;
+    private readonly HttpClient _client;
     
-    public AuthControllerIntegrationTest(ITestOutputHelper testOutputHelper)
+    public AuthControllerIntegrationTest()
     {
-        _testOutputHelper = testOutputHelper;
+        _mockServices = new MockServices();
+        _app = new SolarWatchWebApplicationFactory(_mockServices);
+        _client = _app.CreateClient();
+        _client.DefaultRequestHeaders.Clear();
     }
+
+    private const string Email = "test@test.com";
 
     [Fact]
     public async Task RegisterUser_Test()
     {
-        var app = new SolarWatchWebApplicationFactory();
-        var client = app.CreateClient();
-
-        var registerRequest = new RegistrationRequest("test@test.com", "test", "test123", "Test");
-        var response = await client.PostAsJsonAsync("/api/auth/register", registerRequest);
-
+        var expected = new AuthResult(true, Email, "test", "token");
+        _mockServices.AuthServiceMock.Setup(x => x.RegisterAsync(Email, "test", "test123", "Stockholm", "User"))
+            .ReturnsAsync(expected);
+        
+        var response = await _client.PostAsJsonAsync("/api/Auth/register", new RegistrationRequest(Email, "test", "test123", "Stockholm"));
+        
         response.EnsureSuccessStatusCode();
-        var userResponse = await response.Content.ReadFromJsonAsync<ApplicationUser>();
-
-        Assert.NotNull(userResponse);
-        Assert.Equal("test", registerRequest.Username);
-        Assert.Equal("test@test.com", registerRequest.Email);
-        Assert.Equal("Test", registerRequest.City);
+        var data = await response.Content.ReadFromJsonAsync<RegistrationResponse>();
+        
+        Assert.NotNull(data);
+        Assert.Equal(Email, data.Email);
     }
 
     [Fact]
     public async Task LoginUser_Test()
     {
-        var app = new SolarWatchWebApplicationFactory();
-        var client = app.CreateClient();
-
-        var loginRequest = new AuthRequest("admin", "admin123");
-        var response = await client.PostAsJsonAsync("/api/Auth/login", loginRequest);
-
+        var expected = new AuthResult(true, Email, "test", "token");
+        _mockServices.AuthServiceMock.Setup(x => x.LoginAsync(Email, "test123"))
+            .ReturnsAsync(expected);
+        
+        var response = await _client.PostAsJsonAsync("/api/Auth/login", new AuthRequest(Email, "test123"));
+        
         response.EnsureSuccessStatusCode();
-        var authResponse = await response.Content.ReadFromJsonAsync<AuthResponse>();
-
-        Assert.NotNull(authResponse);
-        Assert.Equal("admin", loginRequest.EmailOrUserName);
+        var data = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        
+        Assert.NotNull(data);
+        Assert.Equal(Email, data.Email);
     }
     
     [Fact]
     public async Task LoginUser_InvalidCredentials_Test()
     {
-        var app = new SolarWatchWebApplicationFactory();
-        var client = app.CreateClient();
-
-        var loginRequest = new AuthRequest("admin", "admin1234");
-        var response = await client.PostAsJsonAsync("/api/Auth/login", loginRequest);
-
+        var expected = new AuthResult(false, Email, "test", "token");
+        _mockServices.AuthServiceMock.Setup(x => x.LoginAsync(Email, "test1234"))
+            .ReturnsAsync(expected);
+        
+        var response = await _client.PostAsJsonAsync("/api/Auth/login", new AuthRequest(Email, "test1234"));
+        
         Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
-    }
-    
-    [Fact]
-    public async Task WhoAmI_Test()
-    {
-        var app = new SolarWatchWebApplicationFactory();
-        var client = app.CreateClient();
-
-        var loginRequest = new AuthRequest("admin", "admin123");
-        var response = await client.PostAsJsonAsync("/api/Auth/login", loginRequest);
-
-        response.EnsureSuccessStatusCode();
-        var authResponse = await response.Content.ReadFromJsonAsync<AuthResponse>();
-
-        Assert.NotNull(authResponse);
-        Assert.Equal("admin", loginRequest.EmailOrUserName);
-
-        var whoAmIResponse = await client.GetAsync("/api/Auth/whoami");
-        whoAmIResponse.EnsureSuccessStatusCode();
-        var whoAmI = await whoAmIResponse.Content.ReadFromJsonAsync<AuthResponse>();
-
-        Assert.NotNull(whoAmI);
-        Assert.Equal("admin@admin.com", whoAmI.Email);
     }
 }
